@@ -20,6 +20,7 @@ class MainClient(Client):
         self.iter += 1
         # iface.set_speed(2)
         if _time >= 0:
+
             inputs = {  # 0 Forward
                 "left": False,
                 "right": False,
