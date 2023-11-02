@@ -2,7 +2,46 @@ from tminterface.interface import TMInterface
 from tminterface.client import Client, run_client
 import sys
 import time
+import math
+from collections import namedtuple
 
+State = namedtuple('State',
+    ('speed',
+        'acceleration',
+        'distance_to_centerline',
+        'angle_to_centerline',
+        'distance_to_first_turn',
+        'distance_to_second_turn',
+        'direction_of_first_turn',
+        'direction_of_second_turn'
+    )
+)
+
+def get_state(iface_state, previous_state: State, previous_time: int, current_time: int) -> State:
+
+    speed = math.sqrt(iface_state.velocity[0]**2 + iface_state.velocity[1]**2 + iface_state.velocity[2]**2)
+
+    if previous_state is None:
+        acceleration = 0
+    else:
+        acceleration = (speed - previous_state.speed) / (current_time - previous_time)
+
+    
+def get_closest_point_to_middle_line(x_y_car_location, list_points_on_middle_line):
+    min_distance = 1000
+    closest_point = None
+
+    for point in list_points_on_middle_line:
+        distance = math.sqrt((x_y_car_location[0] - point[0])**2 + (x_y_car_location[1] - point[1])**2)
+
+        # If the distance is more than 1.5 times the minimum distance, we can stop searching
+        # because we reach the closest point and we are now going away from it
+        if distance > 1.5*min_distance:
+            return min_distance
+
+        if distance < min_distance:
+            min_distance = distance
+            closest_point = point
 
 class MainClient(Client):
     def __init__(self) -> None:
@@ -17,9 +56,13 @@ class MainClient(Client):
             iface.close()
 
     def on_run_step(self, iface: TMInterface, _time: int):
+
+        
+
         self.iter += 1
         # iface.set_speed(2)
         if _time >= 0:
+
 
             inputs = {  # 0 Forward
                 "left": False,
