@@ -5,6 +5,10 @@ import pandas as pd
 State = namedtuple('State',
         ('speed',
         'acceleration',
+        'turning_rate',
+        'is_free_wheeling',
+        'is_sliding',
+        'as_any_lateral_contact',
         'distance_to_centerline',
         'angle_to_centerline',
         'distance_to_first_turn',
@@ -12,12 +16,13 @@ State = namedtuple('State',
         'direction_of_first_turn',
         'direction_of_second_turn'))
 
+
 def get_middle_line_of_track(track_name: str):
     path_to_csv = f'maps/{track_name}/road_middle.csv'
     df_points_on_middle_line = pd.read_csv(path_to_csv)
     return list(zip(df_points_on_middle_line.x_values, df_points_on_middle_line.y_values))
 
-def get_closest_point_to_middle_line(car_location, list_points_on_middle_line):
+def get_distance_and_angle_to_centerline(car_location, yaw, list_points_on_middle_line):
     min_distance = 1000
 
     for point in list_points_on_middle_line:
@@ -43,7 +48,7 @@ class Agent:
     def get_state(self, iface_state, previous_state: State, previous_time: int, current_time: int) -> State:
 
         # Get the speed of the car
-        speed = math.sqrt(iface_state.velocity[0]**2 + iface_state.velocity[1]**2 + iface_state.velocity[2]**2)
+        speed = iface_state.display_speed
 
         # Get the acceleration of the car
         if previous_state is None:
@@ -51,13 +56,23 @@ class Agent:
         else:
             acceleration = (speed - previous_state.speed) / (current_time - previous_time)
 
-        # Get the distance to the centerline
-        distance_to_centerline = get_closest_point_to_middle_line(
-            iface_state.position,
-            self.list_points_on_middle_line_of_track
-            )
-        
-        # Get the angle to the centerline
-        
+        # Get the turning rate of the car
+        turning_rate = iface_state.scene_mobil.turning_rate
+
+        # Get the is_free_wheeling of the car
+        is_free_wheeling = iface_state.scene_mobil.is_freewheeling
+
+        # Get the is_sliding of the car
+        is_sliding = iface_state.scene_mobil.is_sliding
+
+        # Get the has_any_lateral_contact of the car
+        has_any_lateral_contact = iface_state.scene_mobil.has_any_lateral_contact
+
+        # Get the distance and angle to the centerline
+        # distance_to_centerline = get_closest_point_to_middle_line(
+        #     iface_state.position,
+        #     self.list_points_on_middle_line_of_track
+        #     )
+
 
     

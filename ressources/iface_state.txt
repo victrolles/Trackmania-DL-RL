@@ -1,0 +1,92 @@
+Time: 50
+Display Speed: 0
+Position: [331.20001220703125, 10.183140754699707, 560.0]
+Velocity: [-2.6824368769241217e-17, -1.2830278873443604, 1.7381787351268942e-15]
+YPW: [1.5707966844227816, -1.0890070396279388e-07, -1.6164791093236194e-08]
+state player race finished: False
+state wheels 0 steerable: True
+state wheels 0 has_ground_contact: True
+state wheels 0 is_sliding: False
+state scene_mobil has_any_lateral_contact: False
+state scene_mobil turning_rate: 0.0
+state scene_mobil is_freewheeling: False
+state scene_mobil is_sliding : [SceneVehicleCar object at 0x1e5ca47ac80]
+is_update_async (bool): True
+input_gas (float): 0.0
+input_brake (float): 0.0
+input_steer (float): 0.0
+is_light_trials_set (bool): False
+horn_limit (int): 3
+quality (int): 2
+max_linear_speed (float): 277.77777099609375
+gearbox_state (int): 0
+block_flags (int): 4
+prev_sync_vehicle_state (SceneVehicleCarState):
+        speed_forward (float): 3.310129949723158e-20
+        speed_sideward (float): 5.605193857299268e-45
+        input_steer (float): 0.20430098474025726
+        input_gas (float): 0.0
+        input_brake (float): 0.0
+        is_turbo (bool): False
+        rpm (float): 0.0
+        gearbox_state (int): 0
+        rest (bytearray): [ 00 00 00 00 01 00 00 00 00 00 00 00 4F 33 00 3F  (12 more bytes...) ]
+sync_vehicle_state (SceneVehicleCarState):
+        speed_forward (float): 0.0
+        speed_sideward (float): 0.0
+        input_steer (float): 0.0
+        input_gas (float): -1.397226299104659e-07
+        input_brake (float): 2.0739856054774464e-08
+        is_turbo (bool): False
+        rpm (float): -2.0739856054774464e-08
+        gearbox_state (int): 0
+        rest (bytearray): [ 00 00 00 00 01 00 00 00 00 00 00 00 4F 33 00 3F  (12 more bytes...) ]
+async_vehicle_state (SceneVehicleCarState):
+        speed_forward (float): 0.0
+        speed_sideward (float): 0.0
+        input_steer (float): 0.0
+        input_gas (float): 0.0
+        input_brake (float): 0.0
+        is_turbo (bool): False
+        rpm (float): 0.0
+        gearbox_state (int): 0
+        rest (bytearray): [ 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00  (12 more bytes...) ]
+prev_async_vehicle_state (SceneVehicleCarState):
+        speed_forward (float): 0.0
+        speed_sideward (float): 0.0
+        input_steer (float): 0.0
+        input_gas (float): 0.0
+        input_brake (float): 0.0
+        is_turbo (bool): False
+        rpm (float): 0.0
+        gearbox_state (int): 0
+        rest (bytearray): [ 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00  (12 more bytes...) ]
+engine (Engine):
+        max_rpm (float): 11000.0
+        braking_factor (float): -0.0
+        clamped_rpm (float): 0.0
+        actual_rpm (float): 0.0
+        slide_factor (float): 1.0
+        rear_gear (int): 0
+        gear (int): 1
+has_any_lateral_contact (bool): False
+last_has_any_lateral_contact_time (int): -1
+water_forces_applied (bool): False
+turning_rate (float): 0.0
+turbo_boost_factor (float): 0.0
+last_turbo_type_change_time (int): 1060547043
+last_turbo_time (int): 1045599524
+turbo_type (int): 0
+roulette_value (float): 0.7035078406333923
+is_freewheeling (bool): False
+is_sliding (bool): False
+wheel_contact_absorb_counter (int): 0
+burnout_state (int): 0
+current_local_speed (ndarray): [0.0 -1.0537198781967163 0.0]
+total_central_force_added (ndarray): [0.0 7.069209098815918 0.0]
+is_rubber_ball (bool): False
+saved_state (ndarray):
+        [[0.0 0.0 0.0]
+         [0.0 0.0 0.0]
+         [0.0 0.0 0.0]
+         [0.0 0.0 0.0]]
