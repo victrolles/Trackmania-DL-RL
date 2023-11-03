@@ -22,21 +22,29 @@ def get_middle_line_of_track(track_name: str):
     df_points_on_middle_line = pd.read_csv(path_to_csv)
     return list(zip(df_points_on_middle_line.x_values, df_points_on_middle_line.y_values))
 
+def get_angle_from_two_points(point, previous_point):
+    return math.atan2(point[0] - previous_point[0], point[1] - previous_point[1])
+
 def get_distance_and_angle_to_centerline(car_location, yaw, list_points_on_middle_line):
     min_distance = 1000
+    previous_point = list_points_on_middle_line[0]
 
-    for point in list_points_on_middle_line:
+    for point in list_points_on_middle_line[1:]:
         distance = math.sqrt((car_location[0] - point[0])**2 + (car_location[2] - point[1])**2)
 
         # If the distance is more than 1.5 times the minimum distance, we can stop searching
         # because we reach the closest point and we are now going away from it
-        if distance > 1.5*min_distance:
-            return min_distance
+        if distance > 1.5 * min_distance:
+            break
 
         if distance < min_distance:
             min_distance = distance
 
-    return min_distance
+        previous_point = point
+
+    angle = get_angle_from_two_points(point, previous_point) - yaw
+
+    return min_distance, angle
 
 class Agent:
 
@@ -69,10 +77,9 @@ class Agent:
         has_any_lateral_contact = iface_state.scene_mobil.has_any_lateral_contact
 
         # Get the distance and angle to the centerline
-        # distance_to_centerline = get_closest_point_to_middle_line(
-        #     iface_state.position,
-        #     self.list_points_on_middle_line_of_track
-        #     )
+        distance_to_centerline, angle_to_centerline = get_distance_and_angle_to_centerline(iface_state.position,
+                                                                                           iface_state.yaw_pitch_roll[0],
+                                                                                           self.list_points_on_middle_line_of_track)
 
 
     

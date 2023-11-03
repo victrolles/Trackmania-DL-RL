@@ -11,6 +11,7 @@ class MainClient(Client):
     def __init__(self) -> None:
         super(MainClient, self).__init__()
         self.iter = 0
+        self.previous_position = None
 
     def on_registered(self, iface: TMInterface) -> None:
         print(f'Registered to {iface.server_name}')
@@ -25,7 +26,16 @@ class MainClient(Client):
 
             self.iter += 1
             state = iface.get_simulation_state()
+            position = state.position
 
+            if self.previous_position is None:
+                self.previous_position = position
+            else:
+                angle = math.atan2(position[2] - self.previous_position[2], position[0] - self.previous_position[0])
+                angle2 = math.atan2(position[0] - self.previous_position[0], position[2] - self.previous_position[2])
+                print(f'Angle: {angle}, angle2: {angle2}', end='\r')
+
+            self.previous_position = position
             # print(
             #     f'Time: {_time}\n'
             #     f'Display Speed: {state.display_speed}\n'
@@ -45,7 +55,7 @@ class MainClient(Client):
             #     f'state scene_mobil is_sliding : {state.scene_mobil}\n'
             # , end='\r')
 
-            print(f'Speed: {state.display_speed}, turning rate : {state.scene_mobil.turning_rate}', end='\r')
+            # print(f'Speed: {state.display_speed}, turning rate : {state.scene_mobil.turning_rate}', end='\r')
 
             if self.iter > 10000:
                 iface.close()
