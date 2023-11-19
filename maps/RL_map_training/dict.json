@@ -2,10 +2,10 @@
     "road_sections": [
         {
             "next_turn_point": [
-                484.0,
+                329.5,
                 560.0
             ],
-            "direction_turn": 1,
+            "direction_turn": 0,
             "list_middle_points": [
                 [
                     331.20001220703125,
@@ -347,10 +347,10 @@
         },
         {
             "next_turn_point": [
-                526.7,
-                514.5
+                484.0,
+                560.0
             ],
-            "direction_turn": 0,
+            "direction_turn": 1,
             "list_middle_points": [
                 [
                     487.2840576171875,
@@ -492,10 +492,10 @@
         },
         {
             "next_turn_point": [
-                528.1,
-                444.6
+                526.7,
+                514.5
             ],
-            "direction_turn": 1,
+            "direction_turn": 0,
             "list_middle_points": [
                 [
                     528.039794921875,
@@ -609,8 +609,8 @@
         },
         {
             "next_turn_point": [
-                478.3,
-                400.5
+                528.1,
+                444.6
             ],
             "direction_turn": 1,
             "list_middle_points": [
@@ -762,10 +762,10 @@
         },
         {
             "next_turn_point": [
-                430.7,
-                453.4
+                478.3,
+                400.5
             ],
-            "direction_turn": -1,
+            "direction_turn": 1,
             "list_middle_points": [
                 [
                     474.3522033691406,
@@ -935,8 +935,8 @@
         },
         {
             "next_turn_point": [
-                386.7,
-                496.1
+                430.7,
+                453.4
             ],
             "direction_turn": -1,
             "list_middle_points": [
@@ -1060,10 +1060,10 @@
         },
         {
             "next_turn_point": [
-                335.5,
-                449.8
+                386.7,
+                496.1
             ],
-            "direction_turn": 0,
+            "direction_turn": -1,
             "list_middle_points": [
                 [
                     382.2803039550781,
@@ -1206,9 +1206,9 @@
         {
             "next_turn_point": [
                 335.5,
-                382.1
+                449.8
             ],
-            "direction_turn": -1,
+            "direction_turn": 0,
             "list_middle_points": [
                 [
                     335.986572265625,
@@ -1334,10 +1334,10 @@
         },
         {
             "next_turn_point": [
-                387.7,
-                336.4
+                335.5,
+                382.1
             ],
-            "direction_turn": 0,
+            "direction_turn": -1,
             "list_middle_points": [
                 [
                     336.2587127685547,
@@ -1495,10 +1495,10 @@
         },
         {
             "next_turn_point": [
-                548.3,
+                387.7,
                 336.4
             ],
-            "direction_turn": -1,
+            "direction_turn": 0,
             "list_middle_points": [
                 [
                     391.1280670166016,
@@ -1772,10 +1772,10 @@
         },
         {
             "next_turn_point": [
-                591.6,
-                387.2
+                548.3,
+                336.4
             ],
-            "direction_turn": 1,
+            "direction_turn": -1,
             "list_middle_points": [
                 [
                     552.548095703125,
@@ -1921,10 +1921,10 @@
         },
         {
             "next_turn_point": [
-                648.6,
-                432.8
+                591.6,
+                387.2
             ],
-            "direction_turn": 0,
+            "direction_turn": 1,
             "list_middle_points": [
                 [
                     592.5758056640625,
