@@ -46,7 +46,6 @@ def get_informations_from_turns(middle_point, road_sections):
     # Find on which section the car is located
     first_road_section_found = False
     second_road_section_found = False
-    current_road_section = None
     first_road_section = None
     second_road_section = None
 
@@ -62,7 +61,6 @@ def get_informations_from_turns(middle_point, road_sections):
             second_road_section_found = True
         
         elif middle_point in road_section["list_middle_points"]:
-            current_road_section = road_section
             first_road_section_found = True
 
     # If the car is not on a road section, return an error
