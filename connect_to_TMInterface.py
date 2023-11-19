@@ -14,8 +14,6 @@ class MainClient(Client):
     
         self.agent = Agent('RL_map_training')
 
-        self.previous_time = int(0)
-        self.previous_state = None
         self.iter = 0
 
     def on_registered(self, iface: TMInterface) -> None:
@@ -31,16 +29,15 @@ class MainClient(Client):
             
             # Loop : get the current state of the car
             iface_state = iface.get_simulation_state()
-            current_state = self.agent.get_state(iface_state, self.previous_state, self.previous_time, _time)
+            current_state = self.agent.get_state(iface_state)
             
             # Print the current state of the car
-            # print(f"Spd: {current_state.speed:.1f}, Acc: {current_state.acceleration:.1f}, Turn: {current_state.turning_rate:.1f}, Free: {current_state.is_free_wheeling}, Slide: {current_state.is_sliding}, Lat: {current_state.has_any_lateral_contact}",end='\r')
+            # TODO: fix this fucking problem of acceleration
+            print(f"Spd: {current_state.speed}, Acc : {current_state.acceleration}", end='\r')
+            # print(f"Turn: {current_state.turning_rate:.1f}, Free: {current_state.is_free_wheeling}, Slide: {current_state.is_sliding}, Lat: {current_state.has_any_lateral_contact}",end='\r')
             # print(f"Dist: {current_state.distance_to_centerline:.3f}, Angle: {current_state.angle_to_centerline:.3f}",end='\r')
             # print(f"Dist1: {current_state.distance_to_first_turn:.3f}, Dist2: {current_state.distance_to_second_turn:.3f}, Dir1: {current_state.direction_of_first_turn:.3f}, Dir2: {current_state.direction_of_second_turn:.3f}", end='\r')
-            
-            
-            self.previous_time = _time
-            self.previous_state = current_state
+
             self.iter += 1
 
             if self.iter > 10000:

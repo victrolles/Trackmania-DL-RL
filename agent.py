@@ -2,6 +2,7 @@ from collections import namedtuple
 import math
 import pandas as pd
 import json
+import time
 
 # The State class is a named tuple that contains all the information that the agent needs to take a decision
 State = namedtuple('State',
@@ -18,6 +19,12 @@ State = namedtuple('State',
         'distance_to_second_turn',
         'direction_of_first_turn',
         'direction_of_second_turn'
+    ))
+
+Step = namedtuple('Step',
+    (
+        'speed',
+        'time'
     ))
 
 # Get the list of points on the middle line of the track
@@ -62,7 +69,6 @@ def get_informations_from_turns(middle_point, road_sections):
         
         elif list(middle_point) in road_section["list_middle_points"]:
             first_road_section_found = True
-            # print(f"road section: {idx}", end='\r')
 
     # If the car is not on a road section, return an error
     if first_road_section_found:
@@ -95,6 +101,7 @@ def get_positional_informations(car_location, yaw, list_points_on_middle_line, r
     min_distance = 1000
     previous_point = list_points_on_middle_line[0]
     min_point = None
+    min_previous_point = None
 
     # Loop over all the points on the middle line to find the CLOSEST POINT OF THE CENTERLINE TO THE CAR
     for point in list_points_on_middle_line[1:]:
@@ -102,24 +109,21 @@ def get_positional_informations(car_location, yaw, list_points_on_middle_line, r
 
         # If the distance is longer than minimum distance, we can stop searching
         # because we reach the closest point and we are now going away from it
-        #TODO: Check why it's not working
-        # if distance > 1.5 * min_distance:
-        # if distance > min_distance:
-            # break
+        if (distance > 1.05 * min_distance) and (min_distance < 12.0):
+            break
 
         if distance < min_distance:
             min_distance = distance
             min_point = point
+            min_previous_point = previous_point
 
         previous_point = point
 
-    print(f"x : {min_point[0]:.2f}, y : {min_point[1]:.2f}", end='\r')
-
     # Get the angle between the road's direction and car's direction
-    angle = get_angle_from_two_points(point, previous_point)# - yaw
+    angle = abs(get_angle_from_two_points(min_point, min_previous_point)) - abs(yaw)
 
     # Get distance and direction to the next turns
-    dist_1st_turn, dist_2nd_turn, dir_1st_turn, dir_2nd_turn = get_informations_from_turns(point, road_sections)
+    dist_1st_turn, dist_2nd_turn, dir_1st_turn, dir_2nd_turn = get_informations_from_turns(min_point, road_sections)
 
     return [min_distance, angle, dist_1st_turn, dist_2nd_turn, dir_1st_turn, dir_2nd_turn]
 
@@ -129,17 +133,22 @@ class Agent:
         self.track_name = track_name
         self.list_point_middle_line = get_list_point_middle_line(track_name)
         self.road_sections = get_road_sections(track_name)
+
+        # Initialize the list of speed and time
+        self.list_speed_time = []
     
-    def get_state(self, iface_state, previous_state: State, previous_time: int, current_time: int) -> State:
+    def get_state(self, iface_state) -> State:
 
         # Get the speed of the car
         speed = iface_state.display_speed
 
         # Get the acceleration of the car
-        if previous_state is None:
+        self.list_speed_time.append(Step(speed, time.time()))
+        if len(self.list_speed_time) < 10:
             acceleration = 0
         else:
-            acceleration = (speed - previous_state.speed) / (current_time - previous_time)
+            old_step = self.list_speed_time.pop(0)  # Remove the oldest step
+            acceleration = (speed - old_step.speed) / (time.time() - old_step.time)
 
         # Get the turning rate of the car
         turning_rate = iface_state.scene_mobil.turning_rate
