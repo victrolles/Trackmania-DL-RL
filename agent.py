@@ -11,7 +11,7 @@ State = namedtuple('State',
         'turning_rate',
         'is_free_wheeling',
         'is_sliding',
-        'as_any_lateral_contact',
+        'has_any_lateral_contact',
         'distance_to_centerline',
         'angle_to_centerline',
         'distance_to_first_turn',
@@ -50,7 +50,7 @@ def get_informations_from_turns(middle_point, road_sections):
     second_road_section = None
 
     # Loop over all the road sections to find the two next turns
-    for road_section in road_sections:
+    for idx, road_section in enumerate(road_sections):
 
         if first_road_section_found and second_road_section_found:
             second_road_section = road_section
@@ -60,8 +60,9 @@ def get_informations_from_turns(middle_point, road_sections):
             first_road_section = road_section
             second_road_section_found = True
         
-        elif middle_point in road_section["list_middle_points"]:
+        elif list(middle_point) in road_section["list_middle_points"]:
             first_road_section_found = True
+            # print(f"road section: {idx}", end='\r')
 
     # If the car is not on a road section, return an error
     if first_road_section_found:
@@ -93,6 +94,7 @@ def get_positional_informations(car_location, yaw, list_points_on_middle_line, r
     # Initialize the minimum distance to a high value and the previous point to the first point
     min_distance = 1000
     previous_point = list_points_on_middle_line[0]
+    min_point = None
 
     # Loop over all the points on the middle line to find the CLOSEST POINT OF THE CENTERLINE TO THE CAR
     for point in list_points_on_middle_line[1:]:
@@ -100,16 +102,21 @@ def get_positional_informations(car_location, yaw, list_points_on_middle_line, r
 
         # If the distance is longer than minimum distance, we can stop searching
         # because we reach the closest point and we are now going away from it
-        if distance > min_distance:
-            break
+        #TODO: Check why it's not working
+        # if distance > 1.5 * min_distance:
+        # if distance > min_distance:
+            # break
 
         if distance < min_distance:
             min_distance = distance
+            min_point = point
 
         previous_point = point
 
+    print(f"x : {min_point[0]:.2f}, y : {min_point[1]:.2f}", end='\r')
+
     # Get the angle between the road's direction and car's direction
-    angle = get_angle_from_two_points(point, previous_point) - yaw
+    angle = get_angle_from_two_points(point, previous_point)# - yaw
 
     # Get distance and direction to the next turns
     dist_1st_turn, dist_2nd_turn, dir_1st_turn, dir_2nd_turn = get_informations_from_turns(point, road_sections)
@@ -165,6 +172,21 @@ class Agent:
         # Get the direction of the next turns
         direction_of_first_turn = list_infos[4]
         direction_of_second_turn = list_infos[5]
+
+        return State(
+            speed,
+            acceleration,
+            turning_rate,
+            is_free_wheeling,
+            is_sliding,
+            has_any_lateral_contact,
+            distance_to_centerline,
+            angle_to_centerline,
+            distance_to_first_turn,
+            distance_to_second_turn,
+            direction_of_first_turn,
+            direction_of_second_turn
+        )
 
 
     

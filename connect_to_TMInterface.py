@@ -4,14 +4,19 @@ import sys
 import time
 import math
 from collections import namedtuple
+from agent import Agent, State
 
 
 
 class MainClient(Client):
     def __init__(self) -> None:
         super(MainClient, self).__init__()
+    
+        self.agent = Agent('RL_map_training')
+
+        self.previous_time = int(0)
+        self.previous_state = None
         self.iter = 0
-        self.previous_position = None
 
     def on_registered(self, iface: TMInterface) -> None:
         print(f'Registered to {iface.server_name}')
@@ -23,39 +28,20 @@ class MainClient(Client):
     def on_run_step(self, iface: TMInterface, _time: int):
 
         if _time >= 0:
-
+            
+            # Loop : get the current state of the car
+            iface_state = iface.get_simulation_state()
+            current_state = self.agent.get_state(iface_state, self.previous_state, self.previous_time, _time)
+            
+            # Print the current state of the car
+            # print(f"Spd: {current_state.speed:.1f}, Acc: {current_state.acceleration:.1f}, Turn: {current_state.turning_rate:.1f}, Free: {current_state.is_free_wheeling}, Slide: {current_state.is_sliding}, Lat: {current_state.has_any_lateral_contact}",end='\r')
+            # print(f"Dist: {current_state.distance_to_centerline:.3f}, Angle: {current_state.angle_to_centerline:.3f}",end='\r')
+            # print(f"Dist1: {current_state.distance_to_first_turn:.3f}, Dist2: {current_state.distance_to_second_turn:.3f}, Dir1: {current_state.direction_of_first_turn:.3f}, Dir2: {current_state.direction_of_second_turn:.3f}", end='\r')
+            
+            
+            self.previous_time = _time
+            self.previous_state = current_state
             self.iter += 1
-            state = iface.get_simulation_state()
-            position = state.position
-
-            if self.previous_position is None:
-                self.previous_position = position
-            else:
-                angle = math.atan2(position[2] - self.previous_position[2], position[0] - self.previous_position[0])
-                angle2 = math.atan2(position[0] - self.previous_position[0], position[2] - self.previous_position[2])
-                print(f'Angle: {angle}, angle2: {angle2}', end='\r')
-
-            self.previous_position = position
-            # print(
-            #     f'Time: {_time}\n'
-            #     f'Display Speed: {state.display_speed}\n'
-            #     f'Position: {state.position}\n'
-            #     f'Velocity: {state.velocity}\n'
-            #     f'YPW: {state.yaw_pitch_roll}\n'
-            #     # f'state player info0: {state.player_info[0]}\n'
-            #     # f'state player info1: {state.player_info[1]}\n's
-            #     f'state player race finished: {state.player_info.race_finished}\n'
-            #     # f'state wheels: {state.simulation_wheels}\n'
-            #     f'state wheels 0 steerable: {state.simulation_wheels[0].steerable}\n'
-            #     f'state wheels 0 has_ground_contact: {state.simulation_wheels[0].real_time_state.has_ground_contact}\n'
-            #     f'state wheels 0 is_sliding: {state.simulation_wheels[0].real_time_state.is_sliding}\n'
-            #     f'state scene_mobil has_any_lateral_contact: {state.scene_mobil.has_any_lateral_contact}\n'
-            #     f'state scene_mobil turning_rate: {state.scene_mobil.turning_rate}\n'
-            #     f'state scene_mobil is_freewheeling: {state.scene_mobil.is_freewheeling}\n'
-            #     f'state scene_mobil is_sliding : {state.scene_mobil}\n'
-            # , end='\r')
-
-            # print(f'Speed: {state.display_speed}, turning rate : {state.scene_mobil.turning_rate}', end='\r')
 
             if self.iter > 10000:
                 iface.close()
