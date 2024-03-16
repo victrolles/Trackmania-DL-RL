@@ -9,19 +9,6 @@ from model import Model
 from experience_buffer import ExperienceBuffer, Experience
 from utils import get_distance_to_finish_line, get_list_point_middle_line, get_road_sections
 
-HISTORY_SIZE = 100_000
-BATCH_SIZE = 1000
-BUFFER_SIZE = 1000
-
-LR = 0.01 #0.001 #0.01
-GAMMA = 0.9 #0.95 #0.9
-
-EPSILON_START = 1
-EPSILON_END = 0.01 
-EPSILON_DECAY = 0.001 #0.00001 #0.001
-
-SYNC_TARGET_EPOCH = 100
-
 
 class Environment(Client):
     def __init__(self, epsilon, epoch, loss, speed, car_action, time, cancel_training, save_model, end_processes) -> None:
@@ -65,12 +52,9 @@ class Environment(Client):
         print(f'Registered to {iface.server_name}', flush=True)
 
     def on_checkpoint_count_changed(self, iface: TMInterface, current: int, target: int):
-        print(f'Reached checkpoint {current}/{target}')
         if current == target:
-            print(f'Finished the race at {self.race_time}')
-            self.finished = True
-            # iface.prevent_simulation_finish()
-            # iface.give_up()
+            iface.prevent_simulation_finish()
+            iface.give_up()
 
     def on_run_step(self, iface: TMInterface, _time: int):
 
@@ -81,65 +65,74 @@ class Environment(Client):
             self.speed.value = iface_state.display_speed
             self.time.value = _time
 
-        #     # Get the current state of the car
-        #     iface_state = iface.get_simulation_state()
-        #     current_state = self.agent.get_state(iface_state)
+            if self.end_processes.value:
+                iface.close()
+                print("Environment process correctly stopped", flush=True)
+                return
+            
+            if self.cancel_training.value:
+                iface.give_up()
+                self.epsilon.value = 0
 
-        #     # Get the action from the agent
-        #     action = self.agent.get_action(iface_state, self.model_network, current_state, self.epsilon)
+            # Get the current state of the car
+            iface_state = iface.get_simulation_state()
+            current_state = self.agent.get_state(iface_state)
 
-        #     # Get feedback from the action
-        #     gave_over = False
-        #     reward = 0
+            # Get the action from the agent
+            action = self.agent.get_action(iface_state, self.model_network, current_state, self.epsilon)
 
-        #     # Get reward from speed
-        #     speed = iface_state.display_speed
-        #     reward += (speed / 30)
+            # Get feedback from the action
+            gave_over = False
+            reward = 0
 
-        #     # Get reward from getting closer to finish line
-        #     dist_to_finish_line = get_distance_to_finish_line(iface_state.position,
-        #         self.list_point_middle_line,
-        #         self.road_sections
-        #    )
-        #     if dist_to_finish_line < self.previous_dist_to_finish_line:
-        #         reward = 10
-        #     else:
-        #         reward = -10
-        #     self.previous_dist_to_finish_line = dist_to_finish_line
+            # Get reward from speed
+            speed = iface_state.display_speed
+            reward += (speed / 30)
 
-        #     # Restart if too long
-        #     if _time > 25000:
-        #         gave_over = True
-        #         reward = -100
-        #         iface.give_up()
+            # Get reward from getting closer to finish line
+            dist_to_finish_line = get_distance_to_finish_line(iface_state.position,
+                self.list_point_middle_line,
+                self.road_sections
+           )
+            if dist_to_finish_line < self.previous_dist_to_finish_line:
+                reward = 10
+            else:
+                reward = -10
+            self.previous_dist_to_finish_line = dist_to_finish_line
 
-        #     # Restart if the car is stopped
-        #     if speed < 1:
-        #         self.inactivity += 1
-        #     else:
-        #         self.inactivity = 0
+            # Restart if too long
+            if _time > 25000:
+                gave_over = True
+                reward = -100
+                iface.give_up()
 
-        #     if self.inactivity > 1000:
-        #         gave_over = True
-        #         reward = -100
-        #         iface.give_up()
+            # Restart if the car is stopped
+            if speed < 1:
+                self.inactivity += 1
+            else:
+                self.inactivity = 0
+
+            if self.inactivity > 1000:
+                gave_over = True
+                reward = -100
+                iface.give_up()
                 
 
             
             
-        #     # Store the experience in the buffer
-        #     if self.previous_state is not None:
-        #         experience = Experience(self.previous_state, action, reward, current_state)
-        #         self.experience_buffer._append(experience)
+            # Store the experience in the buffer
+            if self.previous_state is not None:
+                experience = Experience(self.previous_state, action, reward, current_state)
+                self.experience_buffer._append(experience)
 
-        #     self.previous_state = current_state
-        #     self.iter += 1
+            self.previous_state = current_state
+            self.iter += 1
 
-        #     if self.iter > 10000:
-        #         iface.close()
+            if self.iter > 10000:
+                iface.close()
             
 def start_env(epsilon, epoch, loss, speed, car_action, time, cancel_training, save_model, end_processes):
-    print('Starting environment...', flush=True)
+    print("Environment process started", flush=True)
     server_name = f'TMInterface{sys.argv[1]}' if len(sys.argv) > 1 else 'TMInterface0'
     print(f'Connecting to {server_name}...', flush=True)
     run_client(Environment(epsilon, epoch, loss, speed, car_action, time, cancel_training, save_model, end_processes), server_name)

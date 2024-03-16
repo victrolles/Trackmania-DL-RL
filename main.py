@@ -2,8 +2,7 @@ import torch.multiprocessing as mp
 
 from environment import start_env
 from graphic import Graphic
-
-EPSILON_START = 1.0
+from config import EPSILON_START
 
 def main():
 

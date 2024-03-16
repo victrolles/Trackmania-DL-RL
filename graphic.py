@@ -8,7 +8,7 @@ Size_screen = namedtuple('Size_screen', ['width', 'height'])
 class Graphic:
     def __init__(self, epsilon, epoch, loss, speed, car_action, time, cancel_training, save_model, end_processes):
 
-        print("Graphic init", flush=True)
+        print("Graphic process started", flush=True)
 
         ## Shared memory
 
@@ -128,6 +128,8 @@ class Graphic:
             end = time.perf_counter()
 
             self.fps = int(1 / (end - start))
+
+        print("Graphic process correctly stopped", flush=True)
 
     # Utils
     def update_infos(self):
