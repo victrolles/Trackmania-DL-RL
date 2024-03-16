@@ -1,8 +1,43 @@
 from collections import namedtuple
-import math
-import pandas as pd
-import json
 import time
+import numpy as np
+import torch
+
+from utils import get_list_point_middle_line, get_road_sections, get_positional_informations
+
+# Input:
+INPUT = [
+            {  # 0 Up
+                "left": False,
+                "right": False,
+                "accelerate": True,
+                "brake": False,
+            },
+            {  # 1 Left
+                "left": True,
+                "right": False,
+                "accelerate": False,
+                "brake": False,
+            },
+            {  # 2 Right
+                "left": False,
+                "right": True,
+                "accelerate": False,
+                "brake": False,
+            },
+            {  # 3 Up and Left
+                "left": True,
+                "right": False,
+                "accelerate": True,
+                "brake": False,
+            },
+            {  # 4 Up and Right
+                "left": False,
+                "right": True,
+                "accelerate": True,
+                "brake": False,
+            }
+        ]
 
 # The State class is a named tuple that contains all the information that the agent needs to take a decision
 State = namedtuple('State',
@@ -20,119 +55,21 @@ State = namedtuple('State',
         'direction_of_first_turn',
         'direction_of_second_turn'
     ))
-
 Step = namedtuple('Step',
     (
         'speed',
         'time'
     ))
 
-# Get the list of points on the middle line of the track
-def get_list_point_middle_line(track_name: str):
-    # Read the csv file that contains the points on the middle line of the track
-    path_to_csv = f'maps/{track_name}/road_middle.csv'
-    df_points_on_middle_line = pd.read_csv(path_to_csv)
-    return list(zip(df_points_on_middle_line.x_values, df_points_on_middle_line.y_values))
-
-def get_road_sections(track_name: str):
-    # Read the json file that contains the road sections of the track
-    ## Coordinates of turns, straight lines, etc.
-    ## Direction of turns, straight lines, etc.
-    ## list of points on the middle line of the track related to each road section
-    path_to_json = f'maps/{track_name}/dict.json'
-    with open(path_to_json, "r") as json_file:
-        file_data  = json.load(json_file)
-
-    return file_data["road_sections"]
-
-# Get the angle / orientation between two points
-def get_angle_from_two_points(point, previous_point):
-    return math.atan2(point[0] - previous_point[0], point[1] - previous_point[1])
-
-def get_informations_from_turns(middle_point, road_sections):
-    # Find on which section the car is located
-    first_road_section_found = False
-    second_road_section_found = False
-    first_road_section = None
-    second_road_section = None
-
-    # Loop over all the road sections to find the two next turns
-    for idx, road_section in enumerate(road_sections):
-
-        if first_road_section_found and second_road_section_found:
-            second_road_section = road_section
-            break
-
-        elif first_road_section_found and not second_road_section_found:
-            first_road_section = road_section
-            second_road_section_found = True
-        
-        elif list(middle_point) in road_section["list_middle_points"]:
-            first_road_section_found = True
-
-    # If the car is not on a road section, return an error
-    if first_road_section_found:
-        if first_road_section == None:
-            # We reach the end of the track so we don't have the information
-            dist_1st_turn = 48
-            dir_1st_turn = 0
-        else:
-            # Get the direction and compute the distance between the current section and the next section
-            dir_1st_turn = first_road_section["direction_turn"]
-            dist_1st_turn = math.sqrt((middle_point[0] - first_road_section["next_turn_point"][0])**2 + (middle_point[1] - first_road_section["next_turn_point"][1])**2)
-            #TODO: Compute the distance when it's a turn
-    else:
-        raise Exception("The car is not on a road section")
-        
-    if second_road_section == None:
-        # We reach the end of the track so we don't have the information
-        dist_2nd_turn = 48
-        dir_2nd_turn = 0
-    else:
-        # Get the direction and compute the distance between the current section and the next section
-        dir_2nd_turn = second_road_section["direction_turn"]
-        dist_2nd_turn = dist_1st_turn + math.sqrt((first_road_section["next_turn_point"][0] - second_road_section["next_turn_point"][0])**2 + (first_road_section["next_turn_point"][1] - second_road_section["next_turn_point"][1])**2)
-
-    return dist_1st_turn, dist_2nd_turn, dir_1st_turn, dir_2nd_turn
-
-def get_positional_informations(car_location, yaw, list_points_on_middle_line, road_sections):
-
-    # Initialize the minimum distance to a high value and the previous point to the first point
-    min_distance = 1000
-    previous_point = list_points_on_middle_line[0]
-    min_point = None
-    min_previous_point = None
-
-    # Loop over all the points on the middle line to find the CLOSEST POINT OF THE CENTERLINE TO THE CAR
-    for point in list_points_on_middle_line[1:]:
-        distance = math.sqrt((car_location[0] - point[0])**2 + (car_location[2] - point[1])**2)
-
-        # If the distance is longer than minimum distance, we can stop searching
-        # because we reach the closest point and we are now going away from it
-        if (distance > 1.05 * min_distance) and (min_distance < 12.0):
-            break
-
-        if distance < min_distance:
-            min_distance = distance
-            min_point = point
-            min_previous_point = previous_point
-
-        previous_point = point
-
-    # Get the angle between the road's direction and car's direction
-    angle = abs(get_angle_from_two_points(min_point, min_previous_point)) - abs(yaw)
-
-    # Get distance and direction to the next turns
-    dist_1st_turn, dist_2nd_turn, dir_1st_turn, dir_2nd_turn = get_informations_from_turns(min_point, road_sections)
-
-    return [min_distance, angle, dist_1st_turn, dist_2nd_turn, dir_1st_turn, dir_2nd_turn]
-
 class Agent:
 
-    def __init__(self, track_name: str):
+    def __init__(self, track_name: str, experience_buffer):
         self.track_name = track_name
         self.list_point_middle_line = get_list_point_middle_line(track_name)
         self.road_sections = get_road_sections(track_name)
+
+        # Initialize the experience buffer
+        self.experience_buffer = experience_buffer
 
         # Initialize the list of speed and time
         self.list_speed_time = []
@@ -196,6 +133,27 @@ class Agent:
             direction_of_first_turn,
             direction_of_second_turn
         )
-
-
     
+    def get_action(self, iface_state, model_network, state, epsilon):
+        # Espilon-Greedy: tradeoff exploration / exploitation
+        if np.random.random() < epsilon:
+            move = np.random.randint(0, 4)
+        else:
+            state0 = torch.tensor(state, dtype=torch.float)
+            prediction = model_network(state0)
+            move = torch.argmax(prediction).item()
+
+        # Apply to Trachkmania
+        iface_state.set_input_state(**INPUT[move])
+        
+    def play_step(self, iface_state, model_network, epsilon):
+
+
+        # Get the state and the action
+        state = self.get_state(iface_state)
+        self.get_action(iface_state, model_network, state, epsilon)
+
+        # Save the state and the action in the experience buffer
+        self.experience_buffer._append(state)
+
+        return state

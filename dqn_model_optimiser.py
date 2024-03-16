@@ -1,5 +1,5 @@
 import torch
-from replay_memory import Experience
+from experience_buffer import Experience
 
 class DQNModelOptimiser:
 
