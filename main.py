@@ -12,6 +12,9 @@ def main():
     epsilon = mp.Value('d', EPSILON_START)
     epoch = mp.Value('i', 0)
     loss = mp.Value('d', 0.0)
+    best_dist = mp.Value('d', 0.0)
+    current_dist = mp.Value('d', 0.0)
+    buffer_size = mp.Value('i', 0)
 
     # Car state
     speed = mp.Value('i', 0)
@@ -28,8 +31,8 @@ def main():
 
     ## Processes
 
-    p_env_train = mp.Process(target = start_env, args = (epsilon, epoch, loss, speed, car_action, time, cancel_training, save_model, end_processes))
-    p_graphic = mp.Process(target = Graphic, args=(epsilon, epoch, loss, speed, car_action, time, cancel_training, save_model, end_processes))
+    p_env_train = mp.Process(target = start_env, args = (epsilon, epoch, loss, best_dist, current_dist, buffer_size, speed, car_action, time, cancel_training, save_model, end_processes))
+    p_graphic = mp.Process(target = Graphic, args=(epsilon, epoch, loss, best_dist, current_dist, buffer_size, speed, car_action, time, cancel_training, save_model, end_processes))
 
     p_env_train.start()
     p_graphic.start()

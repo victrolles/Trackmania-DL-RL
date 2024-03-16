@@ -1,11 +1,9 @@
-import torch.multiprocessing as mp
+import numpy as np
 
-def my_function(name):
-    print(f'Hello {name} from a process!')
+liste = [(1, "a"), (2, "b"), (3, "c"), (4, "d"), (5, "e")]
 
-if __name__ == '__main__':
-    # Create a Process object and pass the function name and arguments to it
-    print("Main process")
-    p = mp.Process(target=my_function, args=('World',))
-    p.start()  # Starts the process
-    p.join()   # Waits for the process to finish
+indices = np.random.choice(len(liste), 3, replace=False)
+states, actions = zip(*[liste.pop(idx) for idx in indices])
+print(f"states : {states}")
+print(f"actions : {actions}")
+print(f"new list : {liste}")

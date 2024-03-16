@@ -6,7 +6,7 @@ import tkinter as tk
 Size_screen = namedtuple('Size_screen', ['width', 'height'])
 
 class Graphic:
-    def __init__(self, epsilon, epoch, loss, speed, car_action, time, cancel_training, save_model, end_processes):
+    def __init__(self, epsilon, epoch, loss, best_dist, current_dist, buffer_size, speed, car_action, time, cancel_training, save_model, end_processes):
 
         print("Graphic process started", flush=True)
 
@@ -16,6 +16,9 @@ class Graphic:
         self.epsilon = epsilon
         self.epoch = epoch
         self.loss = loss
+        self.best_dist = best_dist
+        self.current_dist = current_dist
+        self.buffer_size = buffer_size
 
         # Car state
         self.speed = speed
@@ -55,6 +58,9 @@ class Graphic:
         self.label_epsilon = tk.Label(self.root, text=f"Epsilon: {self.epsilon.value:.3f}", bg="#0000CC", fg="#FFFFFF", font=("Arial", 15))
         self.label_epoch = tk.Label(self.root, text=f"Epoch: {self.epoch.value}", bg="#0000CC", fg="#FFFFFF", font=("Arial", 15))
         self.label_loss = tk.Label(self.root, text=f"Loss: {self.loss.value:.3f}", bg="#0000CC", fg="#FFFFFF", font=("Arial", 15))
+        self.label_best_dist = tk.Label(self.root, text=f"Best dist: {self.best_dist.value:.3f}", bg="#0000CC", fg="#FFFFFF", font=("Arial", 15))
+        self.label_current_dist = tk.Label(self.root, text=f"Current dist: {self.current_dist.value:.3f}", bg="#0000CC", fg="#FFFFFF", font=("Arial", 15))
+        self.label_buffer_size = tk.Label(self.root, text=f"Buffer size: {self.buffer_size.value}", bg="#0000CC", fg="#FFFFFF", font=("Arial", 15))
 
         # Car state
         self.label_speed = tk.Label(self.root, text=f"Speed: {self.speed.value}", bg="#0000CC", fg="#FFFFFF", font=("Arial", 15))
@@ -84,12 +90,15 @@ class Graphic:
         self.label_epsilon.place(x=10, y=10)
         self.label_epoch.place(x=10, y=40)
         self.label_loss.place(x=10, y=70)
+        self.label_best_dist.place(x=10, y=100)
+        self.label_current_dist.place(x=200, y=100)
+        self.label_buffer_size.place(x=200, y=70)
 
-        self.label_speed.place(x=10, y=100)
-        self.label_car_action.place(x=10, y=130)
-        self.label_time.place(x=10, y=160)
+        self.label_speed.place(x=10, y=130)
+        self.label_car_action.place(x=10, y=160)
+        self.label_time.place(x=10, y=190)
 
-        self.label_fps.place(x=10, y=190)
+        self.label_fps.place(x=200, y=190)
 
         # buttons:
         self.button_cancel_training.place(x=10, y=230)
@@ -117,7 +126,6 @@ class Graphic:
     # Update display
     def update_display(self):
         self.init_display()
-        iter = 0
 
         while not self.end_processes.value:
 
@@ -136,6 +144,9 @@ class Graphic:
         self.label_epsilon.config(text=f"Epsilon: {self.epsilon.value:.3f}")
         self.label_epoch.config(text=f"Epoch: {self.epoch.value}")
         self.label_loss.config(text=f"Loss: {self.loss.value:.3f}")
+        self.label_best_dist.config(text=f"Best dist: {self.best_dist.value:.3f}")
+        self.label_current_dist.config(text=f"Current dist: {self.current_dist.value:.3f}")
+        self.label_buffer_size.config(text=f"Buffer size: {self.buffer_size.value}")
 
         self.label_speed.config(text=f"Speed: {self.speed.value}")
         self.label_car_action.config(text=f"Action: {self.car_action.value}")

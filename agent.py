@@ -5,39 +5,7 @@ import torch
 
 from utils import get_list_point_middle_line, get_road_sections, get_positional_informations
 
-# Input:
-INPUT = [
-            {  # 0 Up
-                "left": False,
-                "right": False,
-                "accelerate": True,
-                "brake": False,
-            },
-            {  # 1 Left
-                "left": True,
-                "right": False,
-                "accelerate": False,
-                "brake": False,
-            },
-            {  # 2 Right
-                "left": False,
-                "right": True,
-                "accelerate": False,
-                "brake": False,
-            },
-            {  # 3 Up and Left
-                "left": True,
-                "right": False,
-                "accelerate": True,
-                "brake": False,
-            },
-            {  # 4 Up and Right
-                "left": False,
-                "right": True,
-                "accelerate": True,
-                "brake": False,
-            }
-        ]
+
 
 # The State class is a named tuple that contains all the information that the agent needs to take a decision
 State = namedtuple('State',
@@ -134,26 +102,13 @@ class Agent:
             direction_of_second_turn
         )
     
-    def get_action(self, iface_state, model_network, state, epsilon):
+    def get_action(self, model_network, state, epsilon):
         # Espilon-Greedy: tradeoff exploration / exploitation
-        if np.random.random() < epsilon:
+        if np.random.random() < epsilon.value:
             move = np.random.randint(0, 4)
         else:
             state0 = torch.tensor(state, dtype=torch.float)
             prediction = model_network(state0)
             move = torch.argmax(prediction).item()
 
-        # Apply to Trachkmania
-        iface_state.set_input_state(**INPUT[move])
-        
-    def play_step(self, iface_state, model_network, epsilon):
-
-
-        # Get the state and the action
-        state = self.get_state(iface_state)
-        self.get_action(iface_state, model_network, state, epsilon)
-
-        # Save the state and the action in the experience buffer
-        self.experience_buffer._append(state)
-
-        return state
+        return move
