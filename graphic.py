@@ -2,6 +2,8 @@ from collections import namedtuple
 import time
 
 import tkinter as tk
+import matplotlib.pyplot as plt
+from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 
 Size_screen = namedtuple('Size_screen', ['width', 'height'])
 
@@ -34,7 +36,7 @@ class Graphic:
         ## Graphic
 
         # Constants
-        self.screen_size = Size_screen(600, 600)
+        self.screen_size = Size_screen(850, 850)
 
         # Variables
         self.fps = 0
@@ -43,15 +45,29 @@ class Graphic:
         self.root = tk.Tk()
         self.root.title("Car Racing Board")
         self.root.geometry(str(self.screen_size.width) + "x" + str(self.screen_size.height))
+
+        # Matplotlib
+        self.plot = Plot(self.root, self.epoch, self.loss, self.current_dist)
+
+        # Init
         self.root.resizable(False, False)
         self.root.configure(bg='#0000CC')
         self.root.update()
+
+        
 
         ## Main loop
         self.update_display()
 
     # Init display
     def init_display(self):
+
+        ## labels decoration:
+
+        self.label_title = tk.Label(self.root, text="Trackmania Training Board", bg="#0000CC", fg="#FFFFFF", font=("Arial", 20))
+        self.label_training_part = tk.Label(self.root, text="Training Informations", bg="#0000CC", fg="#FFFFFF", font=("Arial", 15))
+        self.label_car_part = tk.Label(self.root, text="Car state", bg="#0000CC", fg="#FFFFFF", font=("Arial", 15))
+        self.label_action_part = tk.Label(self.root, text="Actions", bg="#0000CC", fg="#FFFFFF", font=("Arial", 15))
 
         ## infos:
 
@@ -72,16 +88,13 @@ class Graphic:
         self.label_fps = tk.Label(self.root, text=f"FPS: {self.fps}", bg="#0000CC", fg="#FFFFFF", font=("Arial", 15))
 
         # cancel training:
-        self.label_button_is_training_mode = tk.Label(self.root, text="Off", bg="#0000CC", fg="#FFFFFF", font=("Arial", 15))
+        self.label_button_is_training_mode = tk.Label(self.root, text="Mode : Training", bg="#0000CC", fg="#FFFFFF", font=("Arial", 15))
 
         # save model:
-        self.label_button_is_model_saved = tk.Label(self.root, text="Off", bg="#0000CC", fg="#FFFFFF", font=("Arial", 15))
-
-        # exit:
-        self.label_button_exit = tk.Label(self.root, text="Off", bg="#0000CC", fg="#FFFFFF", font=("Arial", 15))
+        self.label_button_is_model_saved = tk.Label(self.root, text="Save models", bg="#0000CC", fg="#FFFFFF", font=("Arial", 15))
 
         # game speed:
-        self.label_game_speed = tk.Label(self.root, text="Game speed:", bg="#0000CC", fg="#FFFFFF", font=("Arial", 15))
+        self.label_game_speed = tk.Label(self.root, text="Game speed : 1.0", bg="#0000CC", fg="#FFFFFF", font=("Arial", 15))
 
         ## buttons:
 
@@ -100,33 +113,49 @@ class Graphic:
         ## Entry
 
         # game speed:
-        self.entry_game_speed = tk.Entry(self.root, bg="#FFFFFF", fg="#000000", font=("Arial", 15))
+        self.entry_game_speed = tk.Entry(self.root, bg="#FFFFFF", fg="#000000", font=("Arial", 15), width=8)
 
         ## placement:
 
+        # configure the grid
+        self.root.columnconfigure(0, weight=2)
+        self.root.columnconfigure(1, weight=2)
+        self.root.columnconfigure(2, weight=1)
+        self.root.columnconfigure(3, weight=1)
+
+        # labels decoration:
+        self.label_title.grid(column=0, row=0, columnspan=4, sticky=tk.N, padx=5, pady=5)
+        self.label_training_part.grid(column=0, row=1, sticky=tk.N, padx=5, pady=5)
+        self.label_car_part.grid(column=1, row=1, sticky=tk.N, padx=5, pady=5)
+        self.label_action_part.grid(column=2, row=1, columnspan=2, sticky=tk.N, padx=5, pady=5)
+
         # infos:
-        self.label_epsilon.place(x=10, y=10)
-        self.label_epoch.place(x=10, y=40)
-        self.label_loss.place(x=10, y=70)
-        self.label_best_dist.place(x=10, y=100)
-        self.label_current_dist.place(x=200, y=100)
-        self.label_buffer_size.place(x=200, y=70)
+        self.label_epoch.grid(column=0, row=2, sticky=tk.N, padx=5, pady=5)
+        self.label_best_dist.grid(column=0, row=3, sticky=tk.N, padx=5, pady=5)
+        self.label_loss.grid(column=0, row=4, sticky=tk.N, padx=5, pady=5)
+        self.label_epsilon.grid(column=0, row=5, sticky=tk.N, padx=5, pady=5)
+        self.label_buffer_size.grid(column=0, row=6, sticky=tk.N, padx=5, pady=5)
 
-        self.label_speed.place(x=10, y=130)
-        self.label_car_action.place(x=10, y=160)
-        self.label_time.place(x=10, y=190)
+        self.label_time.grid(column=1, row=2, sticky=tk.N, padx=5, pady=5)
+        self.label_current_dist.grid(column=1, row=3, sticky=tk.N, padx=5, pady=5)
+        self.label_speed.grid(column=1, row=4, sticky=tk.N, padx=5, pady=5)
+        self.label_car_action.grid(column=1, row=5, sticky=tk.N, padx=5, pady=5)
+        
 
-        self.label_fps.place(x=200, y=190)
+        self.label_fps.grid(column=2, row=2, columnspan=2, sticky=tk.N, padx=5, pady=5)
 
         # buttons:
-        self.button_is_training_mode.place(x=10, y=230)
-        self.label_button_is_training_mode.place(x=200, y=230)
+        self.button_is_training_mode.grid(column=2, row=4, sticky=tk.E, padx=5, pady=5)
+        self.label_button_is_training_mode.grid(column=3, row=4, sticky=tk.N, padx=5, pady=5)
 
-        self.button_is_model_saved.place(x=10, y=280)
-        self.label_button_is_model_saved.place(x=200, y=280)
+        self.button_is_model_saved.grid(column=2, row=5, sticky=tk.E, padx=5, pady=5)
+        self.label_button_is_model_saved.grid(column=3, row=5, sticky=tk.N, padx=5, pady=5)
 
-        self.button_exit.place(x=10, y=330)
-        self.label_button_exit.place(x=200, y=330)
+        self.button_exit.grid(column=0, row=8, sticky=tk.N, padx=5, pady=5)
+
+        self.entry_game_speed.grid(column=2, row=7, sticky=tk.E, padx=10, pady=0)
+        self.button_game_speed.grid(column=3, row=7, sticky=tk.W, padx=10, pady=5)     
+        self.label_game_speed.grid(column=2, row=8, columnspan=2, sticky=tk.N, padx=5, pady=5)
 
     ## Actions
     
@@ -142,7 +171,7 @@ class Graphic:
     def change_game_speed(self):
         self.game_speed.value = float(self.entry_game_speed.get())
         self.entry_game_speed.delete(0, 'end')
-        self.label_game_speed.config(text=f"Game speed: {self.game_speed.value}")
+        self.label_game_speed.config(text=f"Game speed : {self.game_speed.value}")
 
     def exit(self):
         self.end_processes.value = True
@@ -151,16 +180,33 @@ class Graphic:
     # Update display
     def update_display(self):
         self.init_display()
+        iter = 0
 
         while not self.end_processes.value:
 
             start = time.perf_counter()
-            self.update_infos()
-            self.root.update()
-            time.sleep(0.1)
+
+            if iter % 10 == 0:
+                self.update_infos()
+            
+            # if iter % 10 == 0:
+            #     self.plot.update_infos()
+
+            # if iter % 20 == 0:
+            #     self.plot.update_plot()
+
+            if iter % 10 == 0:  
+                self.root.minsize(self.screen_size.width, self.screen_size.height)
+                self.root.maxsize(self.screen_size.width, self.screen_size.height)
+                self.root.update()
+            
+            time.sleep(0.01)
             end = time.perf_counter()
 
-            self.fps = int(1 / (end - start))
+            self.fps = int(1 / (end - start)) / 10
+            iter += 1
+            if iter > 1000:
+                iter = 0
 
         print("Graphic process correctly stopped", flush=True)
 
@@ -179,3 +225,48 @@ class Graphic:
 
         self.label_fps.config(text=f"FPS: {self.fps}")
 
+class Plot:
+    def __init__(self, root, epoch, loss, distance):
+        self.root = root
+        self.epoch = epoch
+        self.loss = loss
+        self.distance = distance
+
+        self.fig, (self.graph_distances, self.graph_losses) = plt.subplots(1, 2, figsize=(8, 4))
+        self.fig.suptitle('Training Curves')
+
+        self.list_distances = [0]
+        self.list_losses = [0.0]
+
+        self.canvas = FigureCanvasTkAgg(self.fig, master=self.root)
+        self.canvas.get_tk_widget().grid(column=0, row=11, columnspan=4, rowspan=6, sticky=tk.S, padx=5, pady=5)
+
+    def update_infos(self):
+        if self.distance.value != self.list_distances[-1]:
+            self.list_distances.append(self.distance.value)
+
+        if self.loss.value != self.list_losses[-1]:
+            self.list_losses.append(self.loss.value)
+
+    def update_plot(self):
+        # Update graph distances
+        self.graph_distances.clear()
+        self.graph_distances.set_title('Distances :')
+        self.graph_distances.set_xlabel('Tries')
+        self.graph_distances.set_ylabel('Distance')
+        self.graph_distances.plot(self.list_distances)
+        self.graph_distances.set_ylim(ymin=0)
+        self.graph_distances.text(len(self.list_distances)-1, self.list_distances[-1], str(self.list_distances[-1]))
+
+        # Update graph losses
+        self.graph_losses.clear()
+        self.graph_losses.set_title('Losses :')
+        self.graph_losses.set_xlabel('Epochs')
+        self.graph_losses.set_ylabel('Loss')
+        self.graph_losses.plot(self.list_losses)
+        self.graph_losses.set_ylim(ymin=0)
+        self.graph_losses.text(len(self.list_losses)-1, self.list_losses[-1], "{:.2f}".format(self.list_losses[-1]))
+
+        # Draw
+        self.canvas.draw()
+        self.canvas.flush_events()
