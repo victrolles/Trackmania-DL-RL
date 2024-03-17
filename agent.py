@@ -102,12 +102,12 @@ class Agent:
             direction_of_second_turn
         )
     
-    def get_action(self, model_network, state, epsilon):
+    def get_action(self, model_network, state, epsilon, device):
         # Espilon-Greedy: tradeoff exploration / exploitation
         if np.random.random() < epsilon.value:
             move = np.random.randint(0, 4)
         else:
-            state0 = torch.tensor(state, dtype=torch.float)
+            state0 = torch.tensor(state, dtype=torch.float, device=device)
             prediction = model_network(state0)
             move = torch.argmax(prediction).item()
 

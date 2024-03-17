@@ -6,7 +6,7 @@ from config import LR, GAMMA, BATCH_SIZE, SYNC_MODELS_RATE, SAVE_MODELS_RATE, EP
 
 class DQNTrainer:
 
-    def __init__(self, model, target_model, experience_buffer, epsilon, epoch, loss):
+    def __init__(self, model, target_model, experience_buffer, epsilon, epoch, loss, device):
 
         # Model
         self.model = model
@@ -25,15 +25,16 @@ class DQNTrainer:
         self.criterion = nn.MSELoss()
 
         # Device
-        self.device = "cuda" if torch.cuda.is_available() else "cpu"
+        self.device = device
 
     def train_model(self):
-        print(f"buffer size: {len(self.experience_buffer)}", flush=True)
+        
         while len(self.experience_buffer) > BATCH_SIZE:
 
             # Update model
             self.update_model()
             print("Training...")
+            print(f"buffer size: {len(self.experience_buffer)}")
 
             # Update epsilon and epoch
             self.epoch.value += 1
@@ -48,29 +49,48 @@ class DQNTrainer:
                 self.save_model()
 
     def update_model(self):
-        if len(self.experience_buffer) <= BATCH_SIZE:
+        if len(self.experience_buffer) < BATCH_SIZE:
             return
 
         states, actions, rewards, dones, next_states = self.experience_buffer.sample()
 
-        states = torch.tensor(states, dtype=torch.float)
-        actions = torch.tensor(actions, dtype=torch.float)
-        rewards = torch.tensor(rewards, dtype=torch.float)
-        next_states = torch.tensor(next_states, dtype=torch.float)
-        dones = torch.ByteTensor(dones)
+        states = torch.tensor(states, dtype=torch.float, device=self.device)
+        actions = torch.tensor(actions, dtype=torch.int64, device=self.device)
+        rewards = torch.tensor(rewards, dtype=torch.int, device=self.device)
+        next_states = torch.tensor(next_states, dtype=torch.float, device=self.device)
+        dones = torch.ByteTensor(dones, device=self.device)
 
-        state_action_values = self.model(states).gather(1, torch.argmax(actions, dim=0).unsqueeze(1)).squeeze(1)
+        # print(f"states: {states}", flush=True)
+        # print(f"actions: {actions}", flush=True)
+        # print(f"rewards: {rewards}", flush=True)
+        # print(f"dones: {dones}", flush=True)
+        # print(f"next_states: {next_states}", flush=True)
+        # print(f'self.model(states): {self.model(states)}', flush=True)
 
-        next_state_values = self.target_model(next_states).max(1)[0]
-        next_state_values[dones] = 0.0
-        next_state_values = next_state_values.detach()
+        state_action_values = self.model(states).gather(1, actions.unsqueeze(1)).squeeze(1)
+        # print(f'state_action_values: {state_action_values}', flush=True)
 
+        # Compute the next state values
+        next_state_values = torch.zeros(BATCH_SIZE, device=self.device)
+        with torch.no_grad():
+            for i in range(BATCH_SIZE):
+                if dones[i] == 0:
+                    next_state_values[i] = self.target_model(next_states[i]).max(0)[0].detach()
+        # print(f'next_state_values: {next_state_values}', flush=True)
+
+        # Compute the expected state action values
         expected_state_action_values = next_state_values * GAMMA + rewards
+        # print(f'expected_state_action_values: {expected_state_action_values}', flush=True)
+
+        # Compute the loss
         loss = self.criterion(state_action_values, expected_state_action_values)
+        # print(f'loss: {loss.item()}', flush=True)
         self.loss.value = loss.item()
+
+        # Update the model
+        self.optimizer.zero_grad()
         loss.backward()
         self.optimizer.step()
-        
 
     def save_model(self):
         torch.save({

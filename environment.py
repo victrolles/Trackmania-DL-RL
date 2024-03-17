@@ -1,5 +1,6 @@
 from tminterface.interface import TMInterface
 from tminterface.client import Client, run_client
+import torch
 
 import sys
 from collections import namedtuple
@@ -71,12 +72,12 @@ class Environment(Client):
         
 
         ## To sort out
-
+        self.device = 'cuda' if torch.cuda.is_available() else 'cpu'
         self.experience_buffer = ExperienceBuffer()
-        self.model_network = Model(12, 256, 5) #400, 512, 3
-        self.model_target_network = Model(12, 256, 5) #400, 512, 3
+        self.model_network = Model(12, 256, 5).to(self.device) #400, 512, 3
+        self.model_target_network = Model(12, 256, 5).to(self.device) #400, 512, 3
         self.agent = Agent('RL_map_training', self.experience_buffer)
-        self.dqn_trainer = DQNTrainer(self.model_network, self.model_target_network, self.experience_buffer, epsilon, epoch, loss)
+        self.dqn_trainer = DQNTrainer(self.model_network, self.model_target_network, self.experience_buffer, epsilon, epoch, loss, self.device)
         self.inactivity = 0
         self.test_model = False
         track_name = 'RL_map_training'
@@ -168,7 +169,7 @@ class Environment(Client):
 
             # ===== Get the current state of the car =====
             self.previous_state = self.agent.get_state(iface_state)
-            self.previous_action = self.agent.get_action(self.model_network, self.previous_state, self.epsilon)
+            self.previous_action = self.agent.get_action(self.model_network, self.previous_state, self.epsilon, self.device)
             iface.set_input_state(**INPUT[self.previous_action])
             self.car_action.value = self.previous_action
 
