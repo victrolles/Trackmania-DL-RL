@@ -8,7 +8,7 @@ from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 Size_screen = namedtuple('Size_screen', ['width', 'height'])
 
 class Graphic:
-    def __init__(self, epsilon, epoch, loss, best_dist, current_dist, buffer_size, speed, car_action, time, is_training_mode, is_model_saved, game_speed, end_processes):
+    def __init__(self, epsilon, epoch, loss, best_dist, current_dist, buffer_size, speed, car_action, game_time, training_time, is_training_mode, is_model_saved, game_speed, end_processes):
 
         print("Graphic process started", flush=True)
 
@@ -21,11 +21,12 @@ class Graphic:
         self.best_dist = best_dist
         self.current_dist = current_dist
         self.buffer_size = buffer_size
+        self.training_time = training_time
 
         # Car state
         self.speed = speed
         self.car_action = car_action
-        self.time = time
+        self.game_time = game_time
 
         # Actions
         self.is_training_mode = is_training_mode
@@ -40,6 +41,7 @@ class Graphic:
 
         # Variables
         self.fps = 0
+        self.start_training_time = time.time()
 
         # Tkinter
         self.root = tk.Tk()
@@ -78,11 +80,12 @@ class Graphic:
         self.label_best_dist = tk.Label(self.root, text=f"Best dist: {self.best_dist.value:.3f}", bg="#0000CC", fg="#FFFFFF", font=("Arial", 15))
         self.label_current_dist = tk.Label(self.root, text=f"Current dist: {self.current_dist.value:.3f}", bg="#0000CC", fg="#FFFFFF", font=("Arial", 15))
         self.label_buffer_size = tk.Label(self.root, text=f"Buffer size: {self.buffer_size.value}", bg="#0000CC", fg="#FFFFFF", font=("Arial", 15))
+        self.label_training_time = tk.Label(self.root, text=f"Training time: {self.training_time.value}", bg="#0000CC", fg="#FFFFFF", font=("Arial", 15))
 
         # Car state
         self.label_speed = tk.Label(self.root, text=f"Speed: {self.speed.value}", bg="#0000CC", fg="#FFFFFF", font=("Arial", 15))
         self.label_car_action = tk.Label(self.root, text=f"Action: {self.car_action.value}", bg="#0000CC", fg="#FFFFFF", font=("Arial", 15))
-        self.label_time = tk.Label(self.root, text=f"Time: {self.time.value}", bg="#0000CC", fg="#FFFFFF", font=("Arial", 15))
+        self.label_game_time = tk.Label(self.root, text=f"Time: {self.game_time.value}", bg="#0000CC", fg="#FFFFFF", font=("Arial", 15))
 
         # Graphic state
         self.label_fps = tk.Label(self.root, text=f"FPS: {self.fps}", bg="#0000CC", fg="#FFFFFF", font=("Arial", 15))
@@ -135,8 +138,9 @@ class Graphic:
         self.label_loss.grid(column=0, row=4, sticky=tk.N, padx=5, pady=5)
         self.label_epsilon.grid(column=0, row=5, sticky=tk.N, padx=5, pady=5)
         self.label_buffer_size.grid(column=0, row=6, sticky=tk.N, padx=5, pady=5)
+        self.label_training_time.grid(column=0, row=7, sticky=tk.N, padx=5, pady=5)
 
-        self.label_time.grid(column=1, row=2, sticky=tk.N, padx=5, pady=5)
+        self.label_game_time.grid(column=1, row=2, sticky=tk.N, padx=5, pady=5)
         self.label_current_dist.grid(column=1, row=3, sticky=tk.N, padx=5, pady=5)
         self.label_speed.grid(column=1, row=4, sticky=tk.N, padx=5, pady=5)
         self.label_car_action.grid(column=1, row=5, sticky=tk.N, padx=5, pady=5)
@@ -227,10 +231,13 @@ class Graphic:
         self.label_best_dist.config(text=f"Best dist: {self.best_dist.value:.3f}")
         self.label_current_dist.config(text=f"Current dist: {self.current_dist.value:.3f}")
         self.label_buffer_size.config(text=f"Buffer size: {self.buffer_size.value}")
+        
+        self.training_time.value = time.time() - self.start_training_time
+        self.label_training_time.config(text=f"Training time: {self.training_time.value}")
 
         self.label_speed.config(text=f"Speed: {self.speed.value}")
         self.label_car_action.config(text=f"Action: {self.car_action.value}")
-        self.label_time.config(text=f"Time: {self.time.value}")
+        self.label_game_time.config(text=f"Time: {self.game_time.value}")
 
         self.label_fps.config(text=f"FPS: {self.fps}")
 

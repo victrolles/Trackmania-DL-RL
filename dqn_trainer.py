@@ -6,7 +6,7 @@ from config import LR, GAMMA, BATCH_SIZE, SYNC_MODELS_RATE, SAVE_MODELS_RATE, EP
 
 class DQNTrainer:
 
-    def __init__(self, model, target_model, experience_buffer, epsilon, epoch, loss, device, is_model_saved, end_processes, track_name):
+    def __init__(self, model, target_model, experience_buffer, epsilon, epoch, loss, device, is_model_saved, end_processes, track_name, training_time):
 
         # Track name
         self.track_name = track_name
@@ -27,6 +27,7 @@ class DQNTrainer:
         self.loss = loss
         self.is_model_saved = is_model_saved
         self.end_processes = end_processes
+        self.training_time = training_time
 
         # Training parameters
         self.optimizer = optim.Adam(self.model.parameters(), lr=LR)
@@ -107,7 +108,8 @@ class DQNTrainer:
             'model_network_state_dict': self.model.state_dict(),
             'model_target_network_state_dict': self.target_model.state_dict(),
             'optimizer_state_dict': self.optimizer.state_dict(),
-            'epoch': self.epoch.value
+            'epoch': self.epoch.value,
+            'trainig_time': self.training_time.value
         }, f'maps/{self.track_name}/saves/model.pth')
 
     def load_model(self):
@@ -116,6 +118,7 @@ class DQNTrainer:
         self.target_model.load_state_dict(checkpoint['model_target_network_state_dict'])
         self.optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
         self.epoch.value = checkpoint['epoch']
+        self.training_time.value = checkpoint['trainig_time']
 
         self.model.eval()
         self.target_model.eval()

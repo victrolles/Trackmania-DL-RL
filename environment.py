@@ -46,7 +46,7 @@ INPUT = [
         ]
 
 class Environment(Client):
-    def __init__(self, epsilon, epoch, loss, best_dist, current_dist, buffer_size, speed, car_action, time, is_training_mode, is_model_saved, game_speed, end_processes) -> None:
+    def __init__(self, epsilon, epoch, loss, best_dist, current_dist, buffer_size, speed, car_action, game_time, training_time, is_training_mode, is_model_saved, game_speed, end_processes) -> None:
         super(Environment, self).__init__()
 
         ## Shared memory
@@ -58,11 +58,12 @@ class Environment(Client):
         self.best_dist = best_dist
         self.current_dist = current_dist
         self.buffer_size = buffer_size
+        self.training_time = training_time
 
         # Car state
         self.speed = speed
         self.car_action = car_action
-        self.time = time
+        self.game_time = game_time
 
         # Actions
         self.is_training_mode = is_training_mode
@@ -79,7 +80,7 @@ class Environment(Client):
         self.model_network = Model(12, 256, 5).to(self.device) #400, 512, 3
         self.model_target_network = Model(12, 256, 5).to(self.device) #400, 512, 3
         self.agent = Agent('RL_map_training', self.experience_buffer)
-        self.dqn_trainer = DQNTrainer(self.model_network, self.model_target_network, self.experience_buffer, epsilon, epoch, loss, self.device, is_model_saved, end_processes, track_name)
+        self.dqn_trainer = DQNTrainer(self.model_network, self.model_target_network, self.experience_buffer, epsilon, epoch, loss, self.device, is_model_saved, end_processes, track_name, training_time)
         self.inactivity = 0
         self.is_track_finished = False
         self.current_game_speed = 1.0
@@ -208,7 +209,7 @@ class Environment(Client):
 
             # ===== Update the shared memory =====
             self.speed.value = iface_state.display_speed
-            self.time.value = _time
+            self.game_time.value = _time
             self.current_dist.value = 917.422 - dist_to_finish_line
             self.best_dist.value = max(self.best_dist.value, self.current_dist.value)
 
@@ -218,8 +219,8 @@ class Environment(Client):
                 self.dqn_trainer.train_model()
                 iface.give_up()
             
-def start_env(epsilon, epoch, loss, best_dist, current_dist, buffer_size, speed, car_action, time, is_training_mode, is_model_saved, game_speed, end_processes):
+def start_env(epsilon, epoch, loss, best_dist, current_dist, buffer_size, speed, car_action, game_time, training_time, is_training_mode, is_model_saved, game_speed, end_processes):
     print("Environment process started")
     server_name = f'TMInterface{sys.argv[1]}' if len(sys.argv) > 1 else 'TMInterface0'
     print(f'Connecting to {server_name}...')
-    run_client(Environment(epsilon, epoch, loss, best_dist, current_dist, buffer_size, speed, car_action, time, is_training_mode, is_model_saved, game_speed, end_processes), server_name)
+    run_client(Environment(epsilon, epoch, loss, best_dist, current_dist, buffer_size, speed, car_action, game_time, training_time, is_training_mode, is_model_saved, game_speed, end_processes), server_name)
