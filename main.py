@@ -32,13 +32,13 @@ def main():
 
     ## Processes
 
-    #p_env_train = mp.Process(target = start_env, args = (epsilon, epoch, loss, best_dist, current_dist, buffer_size, speed, car_action, time, is_training_mode, is_model_saved, game_speed, end_processes))
+    p_env_train = mp.Process(target = start_env, args = (epsilon, epoch, loss, best_dist, current_dist, buffer_size, speed, car_action, time, is_training_mode, is_model_saved, game_speed, end_processes))
     p_graphic = mp.Process(target = Graphic, args=(epsilon, epoch, loss, best_dist, current_dist, buffer_size, speed, car_action, time, is_training_mode, is_model_saved, game_speed, end_processes))
 
-    #p_env_train.start()
+    p_env_train.start()
     p_graphic.start()
 
-    #p_env_train.join()
+    p_env_train.join()
     p_graphic.join()
 
 if __name__ == '__main__':

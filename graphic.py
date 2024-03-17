@@ -168,6 +168,12 @@ class Graphic:
         self.is_model_saved.value = not self.is_model_saved.value
         self.label_button_is_model_saved.config(text="Saving models ..." if self.is_model_saved.value else "Save models")
 
+    def check_save_model(self):
+        if self.is_model_saved.value:
+            self.label_button_is_model_saved.config(text="Saving models ...")
+        else:
+            self.label_button_is_model_saved.config(text="Save models")
+
     def change_game_speed(self):
         self.game_speed.value = float(self.entry_game_speed.get())
         self.entry_game_speed.delete(0, 'end')
@@ -188,12 +194,15 @@ class Graphic:
 
             if iter % 10 == 0:
                 self.update_infos()
-            
-            # if iter % 10 == 0:
-            #     self.plot.update_infos()
 
-            # if iter % 20 == 0:
-            #     self.plot.update_plot()
+            if iter % 20 == 0:
+                self.check_save_model()
+            
+            if iter % 10 == 0:
+                self.plot.update_infos()
+
+            if iter % 20 == 0:
+                self.plot.update_plot()
 
             if iter % 10 == 0:  
                 self.root.minsize(self.screen_size.width, self.screen_size.height)
@@ -242,11 +251,10 @@ class Plot:
         self.canvas.get_tk_widget().grid(column=0, row=11, columnspan=4, rowspan=6, sticky=tk.S, padx=5, pady=5)
 
     def update_infos(self):
-        if self.distance.value != self.list_distances[-1]:
-            self.list_distances.append(self.distance.value)
-
         if self.loss.value != self.list_losses[-1]:
             self.list_losses.append(self.loss.value)
+            if self.distance.value != self.list_distances[-1] and self.distance.value > 3.0:
+                self.list_distances.append(self.distance.value)
 
     def update_plot(self):
         # Update graph distances

@@ -82,6 +82,7 @@ class Environment(Client):
         self.dqn_trainer = DQNTrainer(self.model_network, self.model_target_network, self.experience_buffer, epsilon, epoch, loss, self.device, is_model_saved, end_processes, track_name)
         self.inactivity = 0
         self.is_track_finished = False
+        self.current_game_speed = 1.0
         
         self.track_name = track_name
         self.list_point_middle_line = get_list_point_middle_line(track_name)
@@ -124,14 +125,15 @@ class Environment(Client):
                 self.is_model_saved.value = False
             
             # ===== Switch between Training and Testing Mode =====
-            if self.is_training_mode.value:
-                iface.give_up()
+            if not self.is_training_mode.value:
                 self.epsilon.value = 0
                 return
             
             # ===== Change Training Speed =====
             if self.epsilon.value != 0:
-                iface.set_speed(self.game_speed.value)
+                if self.current_game_speed != self.game_speed.value:
+                    self.current_game_speed = self.game_speed.value
+                    iface.set_speed(self.game_speed.value)
             
             # ===== Training =====
 
@@ -207,7 +209,7 @@ class Environment(Client):
             # ===== Update the shared memory =====
             self.speed.value = iface_state.display_speed
             self.time.value = _time
-            self.current_dist.value = 900.0 - dist_to_finish_line
+            self.current_dist.value = 917.422 - dist_to_finish_line
             self.best_dist.value = max(self.best_dist.value, self.current_dist.value)
 
             # ===== Update the model if game over =====
