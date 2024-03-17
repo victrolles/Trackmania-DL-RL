@@ -2,15 +2,21 @@ import torch
 import torch.nn as nn
 import torch.optim as optim
 
-from config import LR, GAMMA, BATCH_SIZE, SYNC_MODELS_RATE, SAVE_MODELS_RATE, EPSILON_START, EPSILON_END, EPSILON_DECAY
+from config import LR, GAMMA, BATCH_SIZE, SYNC_MODELS_RATE, SAVE_MODELS_RATE, EPSILON_START, EPSILON_END, EPSILON_DECAY, LOAD_SAVED_MODEL
 
 class DQNTrainer:
 
-    def __init__(self, model, target_model, experience_buffer, epsilon, epoch, loss, device):
+    def __init__(self, model, target_model, experience_buffer, epsilon, epoch, loss, device, is_model_saved, end_processes, track_name):
 
+        # Track name
+        self.track_name = track_name
+        
         # Model
         self.model = model
         self.target_model = target_model
+
+        if LOAD_SAVED_MODEL:
+            self.load_model()
 
         # Experience buffer
         self.experience_buffer = experience_buffer
@@ -19,6 +25,8 @@ class DQNTrainer:
         self.epsilon = epsilon
         self.epoch = epoch
         self.loss = loss
+        self.is_model_saved = is_model_saved
+        self.end_processes = end_processes
 
         # Training parameters
         self.optimizer = optim.Adam(self.model.parameters(), lr=LR)
@@ -33,8 +41,6 @@ class DQNTrainer:
 
             # Update model
             self.update_model()
-            print("Training...")
-            print(f"buffer size: {len(self.experience_buffer)}")
 
             # Update epsilon and epoch
             self.epoch.value += 1
@@ -45,8 +51,12 @@ class DQNTrainer:
                 self.target_model.load_state_dict(self.model.state_dict())
 
             # Save model
-            if self.epoch.value % SAVE_MODELS_RATE == 0:
+            if self.epoch.value % SAVE_MODELS_RATE == 0 or self.end_processes.value == True:
                 self.save_model()
+
+            # End processes
+            if self.end_processes.value:
+                break
 
     def update_model(self):
         if len(self.experience_buffer) < BATCH_SIZE:
@@ -97,14 +107,15 @@ class DQNTrainer:
             'model_network_state_dict': self.model.state_dict(),
             'model_target_network_state_dict': self.target_model.state_dict(),
             'optimizer_state_dict': self.optimizer.state_dict(),
-        }, 'model.pth')
+            'epoch': self.epoch.value
+        }, f'maps/{self.track_name}/saves/model.pth')
 
-    # def load_model(self):
-    #     checkpoint = torch.load('model.pth')
-    #     self.model_network.load_state_dict(checkpoint['model_network_state_dict'])
-    #     self.model_target_network.load_state_dict(checkpoint['model_target_network_state_dict'])
-    #     self.optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
-    #     self.best_score.value = checkpoint['best_score']
+    def load_model(self):
+        checkpoint = torch.load(f'maps/{self.track_name}/saves/model.pth')
+        self.model.load_state_dict(checkpoint['model_network_state_dict'])
+        self.target_model.load_state_dict(checkpoint['model_target_network_state_dict'])
+        self.optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
+        self.epoch.value = checkpoint['epoch']
 
-    #     self.model_network.eval()
-    #     self.model_target_network.eval()
+        self.model.eval()
+        self.target_model.eval()

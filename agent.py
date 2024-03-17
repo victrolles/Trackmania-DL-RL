@@ -105,7 +105,7 @@ class Agent:
     def get_action(self, model_network, state, epsilon, device):
         # Espilon-Greedy: tradeoff exploration / exploitation
         if np.random.random() < epsilon.value:
-            move = np.random.randint(0, 4)
+            move = np.random.randint(0, 5)
         else:
             state0 = torch.tensor(state, dtype=torch.float, device=device)
             prediction = model_network(state0)

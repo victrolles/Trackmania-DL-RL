@@ -6,7 +6,7 @@ import tkinter as tk
 Size_screen = namedtuple('Size_screen', ['width', 'height'])
 
 class Graphic:
-    def __init__(self, epsilon, epoch, loss, best_dist, current_dist, buffer_size, speed, car_action, time, cancel_training, save_model, end_processes):
+    def __init__(self, epsilon, epoch, loss, best_dist, current_dist, buffer_size, speed, car_action, time, is_training_mode, is_model_saved, game_speed, end_processes):
 
         print("Graphic process started", flush=True)
 
@@ -26,8 +26,9 @@ class Graphic:
         self.time = time
 
         # Actions
-        self.cancel_training = cancel_training
-        self.save_model = save_model
+        self.is_training_mode = is_training_mode
+        self.is_model_saved = is_model_saved
+        self.game_speed = game_speed
         self.end_processes = end_processes
 
         ## Graphic
@@ -70,19 +71,36 @@ class Graphic:
         # Graphic state
         self.label_fps = tk.Label(self.root, text=f"FPS: {self.fps}", bg="#0000CC", fg="#FFFFFF", font=("Arial", 15))
 
+        # cancel training:
+        self.label_button_is_training_mode = tk.Label(self.root, text="Off", bg="#0000CC", fg="#FFFFFF", font=("Arial", 15))
+
+        # save model:
+        self.label_button_is_model_saved = tk.Label(self.root, text="Off", bg="#0000CC", fg="#FFFFFF", font=("Arial", 15))
+
+        # exit:
+        self.label_button_exit = tk.Label(self.root, text="Off", bg="#0000CC", fg="#FFFFFF", font=("Arial", 15))
+
+        # game speed:
+        self.label_game_speed = tk.Label(self.root, text="Game speed:", bg="#0000CC", fg="#FFFFFF", font=("Arial", 15))
+
         ## buttons:
 
         # cancel training:
-        self.button_cancel_training = tk.Button(self.root, text="Cancel training", command=self.change_cancel_training, bg="#500000", fg="#FFFFFF", font=("Arial", 15))
-        self.label_button_cancel_training = tk.Label(self.root, text="Off", bg="#0000CC", fg="#FFFFFF", font=("Arial", 15))
+        self.button_is_training_mode = tk.Button(self.root, text="Cancel training", command=self.switch_mode, bg="#500000", fg="#FFFFFF", font=("Arial", 15))
 
         # save model:
-        self.button_save_model = tk.Button(self.root, text="Save model", command=self.change_save_model, bg="#500000", fg="#FFFFFF", font=("Arial", 15))
-        self.label_button_save_model = tk.Label(self.root, text="Off", bg="#0000CC", fg="#FFFFFF", font=("Arial", 15))
+        self.button_is_model_saved = tk.Button(self.root, text="Save model", command=self.save_model, bg="#500000", fg="#FFFFFF", font=("Arial", 15))
 
         # exit:
         self.button_exit = tk.Button(self.root, text="Exit", command=self.exit, bg="#500000", fg="#FFFFFF", font=("Arial", 15))
-        self.label_button_exit = tk.Label(self.root, text="Off", bg="#0000CC", fg="#FFFFFF", font=("Arial", 15))
+
+        # game speed:
+        self.button_game_speed = tk.Button(self.root, text="Set", command=self.change_game_speed, bg="#500000", fg="#FFFFFF", font=("Arial", 15))
+
+        ## Entry
+
+        # game speed:
+        self.entry_game_speed = tk.Entry(self.root, bg="#FFFFFF", fg="#000000", font=("Arial", 15))
 
         ## placement:
 
@@ -101,23 +119,30 @@ class Graphic:
         self.label_fps.place(x=200, y=190)
 
         # buttons:
-        self.button_cancel_training.place(x=10, y=230)
-        self.label_button_cancel_training.place(x=200, y=230)
+        self.button_is_training_mode.place(x=10, y=230)
+        self.label_button_is_training_mode.place(x=200, y=230)
 
-        self.button_save_model.place(x=10, y=280)
-        self.label_button_save_model.place(x=200, y=280)
+        self.button_is_model_saved.place(x=10, y=280)
+        self.label_button_is_model_saved.place(x=200, y=280)
 
         self.button_exit.place(x=10, y=330)
         self.label_button_exit.place(x=200, y=330)
 
-    # Actions
-    def change_cancel_training(self):
-        self.cancel_training.value = not self.cancel_training.value
-        self.label_button_cancel_training.config(text="On" if self.cancel_training.value else "Off")
+    ## Actions
+    
+    # Switch between training and testing mode
+    def switch_mode(self):
+        self.is_training_mode.value = not self.is_training_mode.value
+        self.label_button_is_training_mode.config(text="Mode : Training" if self.is_training_mode.value else "Mode : Testing")
 
-    def change_save_model(self):
-        self.save_model.value = not self.save_model.value
-        self.label_button_save_model.config(text="On" if self.save_model.value else "Off")
+    def save_model(self):
+        self.is_model_saved.value = not self.is_model_saved.value
+        self.label_button_is_model_saved.config(text="Saving models ..." if self.is_model_saved.value else "Save models")
+
+    def change_game_speed(self):
+        self.game_speed.value = float(self.entry_game_speed.get())
+        self.entry_game_speed.delete(0, 'end')
+        self.label_game_speed.config(text=f"Game speed: {self.game_speed.value}")
 
     def exit(self):
         self.end_processes.value = True

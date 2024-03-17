@@ -19,4 +19,8 @@ class ExperienceBuffer:
     def sample(self):
         indices = np.random.choice(len(self.buffer), BATCH_SIZE, replace=False)
         states, actions, rewards, dones, next_states = zip(*[self.buffer[idx] for idx in indices])
+
+        # Remove the sampled experiences
+        self.buffer = deque([self.buffer[i] for i in range(len(self.buffer)) if i not in indices], maxlen = BUFFER_SIZE)
+
         return np.array(states), np.array(actions), np.array(rewards, dtype=np.float32), np.array(dones, dtype=np.uint8), np.array(next_states)
