@@ -42,30 +42,37 @@ class Agent:
         # Initialize the list of speed and time
         self.list_speed_time = []
     
-    def get_state(self, iface_state) -> State:
+    def get_state(self, iface_state, game_time) -> State:
 
-        # Get the speed of the car
+        ## Get the speed of the car
         speed = iface_state.display_speed
+        # Normalize the speed with factor 0.5 and max speed 300
+        speed = np.log(1 + 0.5 * speed) / np.log(1 + 0.5 * 300)
 
-        # Get the acceleration of the car
-        self.list_speed_time.append(Step(speed, time.time()))
+        ## Get the acceleration of the car
+        self.list_speed_time.append(Step(speed, game_time))
         if len(self.list_speed_time) < 10:
-            acceleration = 0
+            acceleration = 1.0
         else:
             old_step = self.list_speed_time.pop(0)  # Remove the oldest step
-            acceleration = (speed - old_step.speed) / (time.time() - old_step.time)
+            acceleration = (speed - old_step.speed) / (game_time - old_step.time)
+            acceleration = acceleration * 1e6
+        if acceleration == 0.0:
+            acceleration = 1.0
+        # Normalize the acceleration with factor 1 and max acceleration 20
+        acceleration = (acceleration / abs(acceleration)) * np.log(1 + 1* abs(acceleration)) / np.log(1 + 1 * 6000)
 
         # Get the turning rate of the car
-        turning_rate = iface_state.scene_mobil.turning_rate
+        turning_rate = float(iface_state.scene_mobil.turning_rate)
 
         # Get the is_free_wheeling of the car
-        is_free_wheeling = iface_state.scene_mobil.is_freewheeling
+        is_free_wheeling = float(iface_state.scene_mobil.is_freewheeling)
 
         # Get the is_sliding of the car
-        is_sliding = iface_state.scene_mobil.is_sliding
+        is_sliding = float(iface_state.scene_mobil.is_sliding)
 
         # Get the has_any_lateral_contact of the car
-        has_any_lateral_contact = iface_state.scene_mobil.has_any_lateral_contact
+        has_any_lateral_contact = float(iface_state.scene_mobil.has_any_lateral_contact)
 
         # Get other positional informations
         list_infos = get_positional_informations(
@@ -76,16 +83,20 @@ class Agent:
             )
         
         # Get the distance and angle to the centerline
-        distance_to_centerline = list_infos[0]
-        angle_to_centerline = list_infos[1]
+        distance_to_centerline = list_infos[0] / 12.0
+        angle_to_centerline = list_infos[1] / np.pi
 
         # Get the distance to the next turns
         distance_to_first_turn = list_infos[2]
+        distance_to_first_turn = np.log(1 + 2 * distance_to_first_turn) / np.log(1 + 2 * 500)
         distance_to_second_turn = list_infos[3]
+        distance_to_second_turn = np.log(1 + 2 * distance_to_second_turn) / np.log(1 + 2 * 500)
 
         # Get the direction of the next turns
         direction_of_first_turn = list_infos[4]
         direction_of_second_turn = list_infos[5]
+
+        # print(f"Spd: {speed:.2f}, Acc: {acceleration:.2f}, TR: {turning_rate:.2f}, Ctt: {has_any_lateral_contact:.2f}, Dist cen: {distance_to_centerline:.2f}, Angl cen: {angle_to_centerline:.2f}, Dist1t: {distance_to_first_turn:.2f}, Dist2t: {distance_to_second_turn:.2f}, Dir1t: {direction_of_first_turn:.2f}, Dir2t: {direction_of_second_turn:.2f}")
 
         return State(
             speed,

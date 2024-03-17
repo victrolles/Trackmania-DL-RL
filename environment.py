@@ -195,7 +195,7 @@ class Environment(Client):
             # print(f"Reward: {reward}")
             
             # --- Get STATE ---
-            current_state = self.agent.get_state(iface_state)
+            current_state = self.agent.get_state(iface_state, _time)
             
             # ===== Store the experience in the buffer =====
             if self.previous_state is not None and self.previous_action is not None:
@@ -204,7 +204,7 @@ class Environment(Client):
                 self.buffer_size.value = len(self.experience_buffer)
 
             # ===== Get the current state of the car =====
-            self.previous_state = self.agent.get_state(iface_state)
+            self.previous_state = self.agent.get_state(iface_state, _time)
             self.previous_action = self.agent.get_action(self.model_network, self.previous_state, self.epsilon, self.device)
             iface.set_input_state(**INPUT[self.previous_action])
             self.car_action.value = self.previous_action

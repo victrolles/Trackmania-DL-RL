@@ -1,6 +1,7 @@
 import math
 import pandas as pd
 import json
+import numpy as np
 
 # Get the list of points on the middle line of the track
 def get_list_point_middle_line(track_name: str):
@@ -95,7 +96,7 @@ def get_positional_informations(car_location, yaw, list_points_on_middle_line, r
         previous_point = point
 
     # Get the angle between the road's direction and car's direction
-    angle = abs(get_angle_from_two_points(min_point, min_previous_point)) - abs(yaw)
+    angle = calculate_relative_angle(yaw, get_angle_from_two_points(min_point, min_previous_point))
 
     # Get distance and direction to the next turns
     dist_1st_turn, dist_2nd_turn, dir_1st_turn, dir_2nd_turn = get_informations_from_turns(min_point, road_sections)
@@ -165,3 +166,17 @@ def convert_seconds(seconds):
     minutes = (seconds % 3600) // 60  # Find the remaining minutes
     seconds = seconds % 60  # Find the remaining seconds
     return hours, minutes, seconds
+
+def calculate_relative_angle(car_angle, track_angle):
+    # Convert angles to vectors
+    car_vector = (np.cos(car_angle), np.sin(car_angle))
+    track_vector = (np.cos(track_angle), np.sin(track_angle))
+    
+    # Calculate the dot product and the determinant (for the 'signed' area)
+    dot_product = car_vector[0] * track_vector[0] + car_vector[1] * track_vector[1]
+    determinant = car_vector[0] * track_vector[1] - car_vector[1] * track_vector[0]
+    
+    # Calculate the angle using arctan2
+    angle = np.arctan2(determinant, dot_product)
+    
+    return angle
