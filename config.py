@@ -1,6 +1,6 @@
 # dqn_trainer
 
-LR = 0.01
+LR = 0.001
 GAMMA = 0.9
 
 SYNC_MODELS_RATE = 10

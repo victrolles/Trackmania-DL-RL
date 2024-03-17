@@ -5,6 +5,8 @@ import tkinter as tk
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 
+from utils import convert_seconds
+
 Size_screen = namedtuple('Size_screen', ['width', 'height'])
 
 class Graphic:
@@ -232,8 +234,9 @@ class Graphic:
         self.label_current_dist.config(text=f"Current dist: {self.current_dist.value:.3f}")
         self.label_buffer_size.config(text=f"Buffer size: {self.buffer_size.value}")
         
-        self.training_time.value = time.time() - self.start_training_time
-        self.label_training_time.config(text=f"Training time: {self.training_time.value}")
+        self.training_time.value = int(time.time() - self.start_training_time)
+        hours, minutes, seconds = convert_seconds(self.training_time.value)
+        self.label_training_time.config(text=f"Training time: {hours} h {minutes} m {seconds} s")
 
         self.label_speed.config(text=f"Speed: {self.speed.value}")
         self.label_car_action.config(text=f"Action: {self.car_action.value}")

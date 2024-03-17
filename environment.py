@@ -77,8 +77,8 @@ class Environment(Client):
         track_name = 'RL_map_training'
         self.device = 'cuda' if torch.cuda.is_available() else 'cpu'
         self.experience_buffer = ExperienceBuffer()
-        self.model_network = Model(12, 256, 5).to(self.device) #400, 512, 3
-        self.model_target_network = Model(12, 256, 5).to(self.device) #400, 512, 3
+        self.model_network = Model(12, 512, 5).to(self.device) #400, 512, 3
+        self.model_target_network = Model(12, 512, 5).to(self.device) #400, 512, 3
         self.agent = Agent('RL_map_training', self.experience_buffer)
         self.dqn_trainer = DQNTrainer(self.model_network, self.model_target_network, self.experience_buffer, epsilon, epoch, loss, self.device, is_model_saved, end_processes, track_name, training_time)
         self.inactivity = 0
@@ -145,7 +145,7 @@ class Environment(Client):
             reward = 0
 
             speed = iface_state.display_speed
-            reward += (speed / 30)
+            reward += (speed / 3)
 
             # Get reward from getting closer to finish line
             dist_to_finish_line = get_distance_to_finish_line(iface_state.position,
@@ -153,16 +153,16 @@ class Environment(Client):
                 self.road_sections
            )
             if dist_to_finish_line < self.previous_dist_to_finish_line:
-                reward += 10
+                reward += 20
             else:
-                reward -= 10
+                reward -= 20
             self.previous_dist_to_finish_line = dist_to_finish_line
 
             # Get reward if no lateral contact
             if iface_state.scene_mobil.has_any_lateral_contact:
-                reward -= 10
+                reward -= 30
             else:
-                reward += 10
+                reward += 30
 
             # --- get DONE ---
 
@@ -191,6 +191,8 @@ class Environment(Client):
                 gave_over = True
                 reward += 100
                 self.is_track_finished = False
+
+            # print(f"Reward: {reward}")
             
             # --- Get STATE ---
             current_state = self.agent.get_state(iface_state)

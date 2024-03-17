@@ -159,3 +159,9 @@ def get_distance_to_finish_line(car_location, list_points_on_middle_line, road_s
         raise Exception("The road section was not found")
 
     return dist_to_finish_line
+
+def convert_seconds(seconds):
+    hours = seconds // 3600  # Find the whole hours
+    minutes = (seconds % 3600) // 60  # Find the remaining minutes
+    seconds = seconds % 60  # Find the remaining seconds
+    return hours, minutes, seconds
