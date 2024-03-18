@@ -71,37 +71,44 @@ class DQNTrainer:
         next_states = torch.tensor(next_states, dtype=torch.float, device=self.device)
         dones = torch.ByteTensor(dones, device=self.device)
 
-        # print(f"states: {states}", flush=True)
-        # print(f"actions: {actions}", flush=True)
-        # print(f"rewards: {rewards}", flush=True)
-        # print(f"dones: {dones}", flush=True)
-        # print(f"next_states: {next_states}", flush=True)
-        # print(f'self.model(states): {self.model(states)}', flush=True)
+        # print(f"states: {states}")
+        # print(f"actions: {actions}")
+        # print(f"rewards: {rewards}")
+        # print(f"dones: {dones}")
+        # print(f"next_states: {next_states}")
+        # print(f'self.model(states): {self.model(states)}')
 
         state_action_values = self.model(states).gather(1, actions.unsqueeze(1)).squeeze(1)
-        # print(f'state_action_values: {state_action_values}', flush=True)
+        # print(f'state_action_values: {state_action_values}')
 
         # Compute the next state values
-        next_state_values = torch.zeros(BATCH_SIZE, device=self.device)
-        with torch.no_grad():
-            for i in range(BATCH_SIZE):
-                if dones[i] == 0:
-                    next_state_values[i] = self.target_model(next_states[i]).max(0)[0].detach()
-        # print(f'next_state_values: {next_state_values}', flush=True)
+        # next_state_values = torch.zeros(BATCH_SIZE, device=self.device)
+        # with torch.no_grad():
+        #     for i in range(BATCH_SIZE):
+        #         if dones[i] == 0:
+        #             next_state_values[i] = self.target_model(next_states[i]).max(0)[0].detach()
+        # print(f'next_state_values: {next_state_values}')
+        # print(f'self.target_model(next_states): {self.target_model(next_states)}')
+        # print(f'self.target_model(next_states).max(1): {self.target_model(next_states).max(1)}')
+        # print(f'self.target_model(next_states).max(0): {self.target_model(next_states).max(0)}')
+        # print(f'self.target_model(next_states).max(1)[0]: {self.target_model(next_states).max(1)[0]}')
+       
+        next_state_values = self.target_model(next_states).max(1)[0].detach()
 
         # Compute the expected state action values
         expected_state_action_values = next_state_values * GAMMA + rewards
-        # print(f'expected_state_action_values: {expected_state_action_values}', flush=True)
+        # print(f'expected_state_action_values: {expected_state_action_values}')
 
         # Compute the loss
         loss = self.criterion(state_action_values, expected_state_action_values)
-        # print(f'loss: {loss.item()}', flush=True)
+        # print(f'loss: {loss.item()}')
         self.loss.value = loss.item()
 
         # Update the model
         self.optimizer.zero_grad()
         loss.backward()
         self.optimizer.step()
+        # exit()
 
     def save_model(self):
         torch.save({

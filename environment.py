@@ -77,8 +77,8 @@ class Environment(Client):
         track_name = 'RL_map_training'
         self.device = 'cuda' if torch.cuda.is_available() else 'cpu'
         self.experience_buffer = ExperienceBuffer()
-        self.model_network = Model(12, 512, 5).to(self.device) #400, 512, 3
-        self.model_target_network = Model(12, 512, 5).to(self.device) #400, 512, 3
+        self.model_network = Model(12, 256, 5).to(self.device) #400, 512, 3
+        self.model_target_network = Model(12, 256, 5).to(self.device) #400, 512, 3
         self.agent = Agent('RL_map_training', self.experience_buffer)
         self.dqn_trainer = DQNTrainer(self.model_network, self.model_target_network, self.experience_buffer, epsilon, epoch, loss, self.device, is_model_saved, end_processes, track_name, training_time)
         self.inactivity = 0
