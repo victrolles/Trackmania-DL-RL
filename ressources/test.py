@@ -1,9 +1,12 @@
 import numpy as np
+import torch
 
-liste = [(1, "a"), (2, "b"), (3, "c"), (4, "d"), (5, "e")]
-
-indices = np.random.choice(len(liste), 3, replace=False)
-states, actions = zip(*[liste.pop(idx) for idx in indices])
-print(f"states : {states}")
-print(f"actions : {actions}")
-print(f"new list : {liste}")
+# value = torch.tensor([[-0.0770,  0.0902,  0.0253,  0.0755,  0.0763]])
+liste = [[1, 2, 3], [1, 2, 3], [1, 2, None]]
+a, b, c = zip(*liste)
+a = torch.FloatTensor(a)
+b = torch.FloatTensor(b)
+c = torch.FloatTensor(c)
+print(a)
+print(b)
+print(c)

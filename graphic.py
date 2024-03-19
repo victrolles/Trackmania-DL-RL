@@ -10,19 +10,19 @@ from utils import convert_seconds
 Size_screen = namedtuple('Size_screen', ['width', 'height'])
 
 class Graphic:
-    def __init__(self, epsilon, epoch, loss, best_dist, current_dist, buffer_size, speed, car_action, game_time, training_time, is_training_mode, is_model_saved, game_speed, end_processes):
+    def __init__(self, episode, loss, best_dist, step, reward, training_time, speed, car_action, game_time, current_dist, is_training_mode, is_model_saved, game_speed, end_processes):
 
         print("Graphic process started", flush=True)
 
         ## Shared memory
 
         # Training state
-        self.epsilon = epsilon
-        self.epoch = epoch
+        self.episode = episode
+        self.step = step
         self.loss = loss
         self.best_dist = best_dist
         self.current_dist = current_dist
-        self.buffer_size = buffer_size
+        self.reward = reward
         self.training_time = training_time
 
         # Car state
@@ -51,7 +51,7 @@ class Graphic:
         self.root.geometry(str(self.screen_size.width) + "x" + str(self.screen_size.height))
 
         # Matplotlib
-        self.plot = Plot(self.root, self.epoch, self.loss, self.current_dist)
+        self.plot = Plot(self.root, self.loss, self.current_dist)
 
         # Init
         self.root.resizable(False, False)
@@ -76,12 +76,12 @@ class Graphic:
         ## infos:
 
         # Training state
-        self.label_epsilon = tk.Label(self.root, text=f"Epsilon: {self.epsilon.value:.3f}", bg="#0000CC", fg="#FFFFFF", font=("Arial", 15))
-        self.label_epoch = tk.Label(self.root, text=f"Epoch: {self.epoch.value}", bg="#0000CC", fg="#FFFFFF", font=("Arial", 15))
+        self.label_episode = tk.Label(self.root, text=f"Episode: {self.episode.value:.3f}", bg="#0000CC", fg="#FFFFFF", font=("Arial", 15))
+        self.label_step = tk.Label(self.root, text=f"Step: {self.step.value}", bg="#0000CC", fg="#FFFFFF", font=("Arial", 15))
         self.label_loss = tk.Label(self.root, text=f"Loss: {self.loss.value:.3f}", bg="#0000CC", fg="#FFFFFF", font=("Arial", 15))
         self.label_best_dist = tk.Label(self.root, text=f"Best dist: {self.best_dist.value:.3f}", bg="#0000CC", fg="#FFFFFF", font=("Arial", 15))
         self.label_current_dist = tk.Label(self.root, text=f"Current dist: {self.current_dist.value:.3f}", bg="#0000CC", fg="#FFFFFF", font=("Arial", 15))
-        self.label_buffer_size = tk.Label(self.root, text=f"Buffer size: {self.buffer_size.value}", bg="#0000CC", fg="#FFFFFF", font=("Arial", 15))
+        self.label_reward = tk.Label(self.root, text=f"Total reward: {self.reward.value}", bg="#0000CC", fg="#FFFFFF", font=("Arial", 15))
         self.label_training_time = tk.Label(self.root, text=f"Training time: {self.training_time.value}", bg="#0000CC", fg="#FFFFFF", font=("Arial", 15))
 
         # Car state
@@ -135,11 +135,11 @@ class Graphic:
         self.label_action_part.grid(column=2, row=1, columnspan=2, sticky=tk.N, padx=5, pady=5)
 
         # infos:
-        self.label_epoch.grid(column=0, row=2, sticky=tk.N, padx=5, pady=5)
+        self.label_step.grid(column=0, row=2, sticky=tk.N, padx=5, pady=5)
         self.label_best_dist.grid(column=0, row=3, sticky=tk.N, padx=5, pady=5)
         self.label_loss.grid(column=0, row=4, sticky=tk.N, padx=5, pady=5)
-        self.label_epsilon.grid(column=0, row=5, sticky=tk.N, padx=5, pady=5)
-        self.label_buffer_size.grid(column=0, row=6, sticky=tk.N, padx=5, pady=5)
+        self.label_episode.grid(column=0, row=5, sticky=tk.N, padx=5, pady=5)
+        self.label_reward.grid(column=0, row=6, sticky=tk.N, padx=5, pady=5)
         self.label_training_time.grid(column=0, row=7, sticky=tk.N, padx=5, pady=5)
 
         self.label_game_time.grid(column=1, row=2, sticky=tk.N, padx=5, pady=5)
@@ -227,12 +227,12 @@ class Graphic:
 
     # Utils
     def update_infos(self):
-        self.label_epsilon.config(text=f"Epsilon: {self.epsilon.value:.3f}")
-        self.label_epoch.config(text=f"Epoch: {self.epoch.value}")
+        self.label_episode.config(text=f"Episode: {self.episode.value:.3f}")
+        self.label_step.config(text=f"Step: {self.step.value}")
         self.label_loss.config(text=f"Loss: {self.loss.value:.3f}")
         self.label_best_dist.config(text=f"Best dist: {self.best_dist.value:.3f}")
         self.label_current_dist.config(text=f"Current dist: {self.current_dist.value:.3f}")
-        self.label_buffer_size.config(text=f"Buffer size: {self.buffer_size.value}")
+        self.label_reward.config(text=f"Total reward: {self.reward.value}")
         
         self.training_time.value = int(time.time() - self.start_training_time)
         hours, minutes, seconds = convert_seconds(self.training_time.value)
@@ -245,9 +245,8 @@ class Graphic:
         self.label_fps.config(text=f"FPS: {self.fps}")
 
 class Plot:
-    def __init__(self, root, epoch, loss, distance):
+    def __init__(self, root, loss, distance):
         self.root = root
-        self.epoch = epoch
         self.loss = loss
         self.distance = distance
 

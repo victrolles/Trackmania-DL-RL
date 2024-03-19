@@ -2,7 +2,6 @@ import torch.multiprocessing as mp
 
 from environment import start_env
 from graphic import Graphic
-from config import EPSILON_START
 
 def main():
 

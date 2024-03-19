@@ -1,8 +1,14 @@
 from collections import namedtuple
 import time
+from typing import Literal
+
 import numpy as np
 import torch
+from torch.distributions import Categorical
+from torch.nn.functional import softmax
+from torch import argmax
 
+from model import PolicyModel
 from utils import get_list_point_middle_line, get_road_sections, get_positional_informations
 
 
@@ -31,7 +37,7 @@ Step = namedtuple('Step',
 
 class Agent:
 
-    def __init__(self, track_name: str):
+    def __init__(self, track_name: str) -> None:
 
         # Get Track informations
         self.list_point_middle_line = get_list_point_middle_line(track_name)
@@ -111,13 +117,34 @@ class Agent:
             direction_of_second_turn
         )
     
-    def get_action(self, model_network, state, epsilon, device):
-        # Espilon-Greedy: tradeoff exploration / exploitation
-        if np.random.random() < epsilon.value:
-            move = np.random.randint(0, 5)
-        else:
-            state0 = torch.tensor(state, dtype=torch.float, device=device)
-            prediction = model_network(state0)
-            move = torch.argmax(prediction).item()
+    def get_action(self,
+                   policy_model: PolicyModel,
+                   state: State,
+                   device: Literal['cpu', 'cuda'],
+                   deterministic: bool = False) -> int:
+        """
+        Generate actions from the policy model given the current state.
 
-        return move
+        Parameters:
+        - policy_model: The instantiated PolicyModel used by the SAC agent.
+        - state: The current state of the environment, expected to be a tensor.
+        - deterministic: A boolean indicating whether to use the mean of the action distribution as the action
+        (True, deterministic) or to sample from the distribution (False, stochastic).
+
+        Returns:
+        - action: The action to be taken, as a numpy array.
+        """
+        state = torch.FloatTensor(state, device=device).unsqueeze(0)  # Convert state to tensor and add batch dimension
+        logits = policy_model(state)
+        probabilities = softmax(logits, dim=1)
+
+        if deterministic:
+            # Select the action with the highest probability
+            action = argmax(probabilities, dim=1)
+        else:
+            # Sample an action according to the probabilities for exploration
+            action_distribution = Categorical(probabilities)
+            action = action_distribution.sample()
+
+        action = action.item()  # Convert to Python int
+        return action

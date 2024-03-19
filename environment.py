@@ -1,13 +1,14 @@
+import sys
+from collections import namedtuple
+from typing import Literal
+
 from tminterface.interface import TMInterface
 from tminterface.client import Client, run_client
 import torch
 
-import sys
-from collections import namedtuple
-
-from agent import Agent
-from dqn_trainer import SACTrainer
-from model import PolicyModel, ValueModel
+from agent import Agent, State
+from sac_trainer import SACTrainer
+from model import PolicyModel, QModel
 from utils import get_distance_to_finish_line, get_list_point_middle_line, get_road_sections
 
 # Input:
@@ -53,18 +54,18 @@ class Environment(Client):
         ## Shared memory
 
         # Training state
-        self.epsilon = epsilon
-        self.epoch = epoch
+        self.episode = episode
         self.loss = loss
         self.best_dist = best_dist
-        self.current_dist = current_dist
-        self.buffer_size = buffer_size
+        self.step = step
+        self.reward = reward
         self.training_time = training_time
 
         # Car state
         self.speed = speed
         self.car_action = car_action
         self.game_time = game_time
+        self.current_dist = current_dist
 
         # Actions
         self.is_training_mode = is_training_mode
@@ -75,29 +76,28 @@ class Environment(Client):
         
 
         ## To sort out
-        track_name = 'RL_map_training'
+        track_name = str('RL_map_training')
         self.device = 'cuda' if torch.cuda.is_available() else 'cpu'
         self.game_experience = []
 
-        self.policy_network = PolicyModel(12, 256, 5).to(self.device) #400, 512, 3
-        self.value_model = ValueModel(12, 256, 5).to(self.device) #400, 512, 3
+        self.policy_model = PolicyModel(12, 5).to(self.device) #400, 512, 3
+        self.q1_model = QModel(12, 5).to(self.device)
+        self.q2_model = QModel(12, 5).to(self.device)
 
         self.agent = Agent(track_name)
-        self.dqn_trainer = SACTrainer(self.model_network, self.model_target_network, self.experience_buffer, epsilon, epoch, loss, self.device, is_model_saved, end_processes, track_name, training_time)
+        self.dqn_trainer = SACTrainer(self.policy_model, self.q1_model, self.q2_model, self.device, self.is_model_saved, self.end_processes, track_name, self.episode, self.loss, self.training_time)
         
         self.inactivity = 0
-        self.is_track_finished = False
+        self.is_track_finished = bool(False)
         self.current_game_speed = 1.0
         
         self.track_name = track_name
         self.list_point_middle_line = get_list_point_middle_line(track_name)
         self.road_sections = get_road_sections(track_name)
 
-        self.previous_dist_to_finish_line = 0
+        self.previous_dist_to_finish_line = 917.422
         self.previous_state = None
         self.previous_action = None
-
-        self.episode = 0
 
     # Connection to Trackmania
     def on_registered(self, iface: TMInterface) -> None:
@@ -137,10 +137,9 @@ class Environment(Client):
                 return
             
             # ===== Change Training Speed =====
-            if self.epsilon.value != 0:
-                if self.current_game_speed != self.game_speed.value:
-                    self.current_game_speed = self.game_speed.value
-                    iface.set_speed(self.game_speed.value)
+            if self.current_game_speed != self.game_speed.value:
+                self.current_game_speed = self.game_speed.value
+                iface.set_speed(self.game_speed.value)
             
             # ===== Training =====
 
@@ -151,7 +150,7 @@ class Environment(Client):
             reward = 0
 
             speed = iface_state.display_speed
-            reward += (speed / 3)
+            reward += int(speed / 3)
 
             # Get reward from getting closer to finish line
             dist_to_finish_line = get_distance_to_finish_line(iface_state.position,
@@ -186,49 +185,67 @@ class Environment(Client):
                 self.inactivity = 0
 
             if self.inactivity > 300:
+
                 print("Step restarted : Car is stopped")
-                self.inactivity = 0
                 gave_over = True
                 reward -= 100
 
             # Restart if the track is finished
             if self.is_track_finished:
+                self.is_track_finished = False
+
                 print("Step restarted : Track is finished")
                 gave_over = True
                 reward += 100
-                self.is_track_finished = False
-
-            # print(f"Reward: {reward}")
             
-            # --- Get STATE ---
-            current_state = self.agent.get_state(iface_state, _time)
+            # --- Get current STATE  ---
+            if gave_over:
+                current_state = None
+            else:
+                current_state = self.agent.get_state(iface_state, _time)
             
             # ===== Store the experience in the buffer =====
             if self.previous_state is not None and self.previous_action is not None:
                 experience = Experience(self.previous_state, self.previous_action, reward, gave_over, current_state)
-                self.experience_buffer._append(experience)
-                self.buffer_size.value = len(self.experience_buffer)
+                self.game_experience.append(experience)
 
             # ===== Get the current state of the car =====
-            self.previous_state = self.agent.get_state(iface_state, _time)
-            self.previous_action = self.agent.get_action(self.model_network, self.previous_state, self.epsilon, self.device)
-            iface.set_input_state(**INPUT[self.previous_action])
-            self.car_action.value = self.previous_action
+            if gave_over:
+                self.previous_state = None
+                self.previous_action = None
+                self.car_action.value = -1
+            else:
+                self.previous_state = current_state
+                self.previous_action = self.agent.get_action(self.policy_model, self.previous_state, self.device)
+                iface.set_input_state(**INPUT[self.previous_action])
+                self.car_action.value = self.previous_action
 
             # ===== Update the shared memory =====
+            self.step.value += 1
+            self.reward.value += reward
+
             self.speed.value = iface_state.display_speed
             self.game_time.value = _time
             self.current_dist.value = 917.422 - dist_to_finish_line
             self.best_dist.value = max(self.best_dist.value, self.current_dist.value)
 
             # ===== Update the model if game over =====
-            if gave_over:
+            if gave_over and len(self.game_experience) > 0:
+                self.episode.value += 1
+                self.step.value = 0
+                self.reward.value = 0
+                self.previous_dist_to_finish_line = 917.422
+                self.inactivity = 0
+
                 iface.give_up()
-                self.dqn_trainer.train_model()
+
+                self.dqn_trainer.train_model(self.game_experience)
+                self.game_experience = []
+                
                 iface.give_up()
             
 def start_env(episode, loss, best_dist, step, reward, training_time, speed, car_action, game_time, current_dist, is_training_mode, is_model_saved, game_speed, end_processes):
     print("Environment process started")
     server_name = f'TMInterface{sys.argv[1]}' if len(sys.argv) > 1 else 'TMInterface0'
     print(f'Connecting to {server_name}...')
-    run_client(Environment(episode, loss, best_dist, step, reward, training_time, speed, car_action, game_time, current_dist, is_training_mode, is_model_saved, game_speed, end_processes)
+    run_client(Environment(episode, loss, best_dist, step, reward, training_time, speed, car_action, game_time, current_dist, is_training_mode, is_model_saved, game_speed, end_processes))

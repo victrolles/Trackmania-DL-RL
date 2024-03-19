@@ -2,17 +2,16 @@
 
 LR = 0.01
 GAMMA = 0.99
-
-SYNC_MODELS_RATE = 50
-SAVE_MODELS_RATE = 50
+ALPHA = 0.1
 
 LOAD_SAVED_MODEL = False
 
-# main
+# environment
 
-EPSILON_START = 1.0
-EPSILON_END = 0.01 
-EPSILON_DECAY = 0.001
+SAVE_MODELS_RATE = 10
+
+# model
+HIDDEN_DIM = 256
 
 # experience_buffer
 
