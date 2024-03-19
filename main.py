@@ -9,18 +9,18 @@ def main():
     ## Shared memory
 
     # Training state
-    epsilon = mp.Value('d', EPSILON_START)
-    epoch = mp.Value('i', 0)
+    episode = mp.Value('i', 0)
     loss = mp.Value('d', 0.0)
     best_dist = mp.Value('d', 0.0)
-    current_dist = mp.Value('d', 0.0)
-    buffer_size = mp.Value('i', 0)
+    step = mp.Value('i', 0)
+    reward = mp.Value('i', 0)
     training_time = mp.Value('i', 0)
 
     # Car state
     speed = mp.Value('i', 0)
     car_action = mp.Value('i', 0)
     game_time = mp.Value('i', 0)
+    current_dist = mp.Value('d', 0.0)
 
     # Actions
     is_training_mode = mp.Value('b', True)
@@ -33,8 +33,8 @@ def main():
 
     ## Processes
 
-    p_env_train = mp.Process(target = start_env, args = (epsilon, epoch, loss, best_dist, current_dist, buffer_size, speed, car_action, game_time, training_time, is_training_mode, is_model_saved, game_speed, end_processes))
-    p_graphic = mp.Process(target = Graphic, args=(epsilon, epoch, loss, best_dist, current_dist, buffer_size, speed, car_action, game_time, training_time, is_training_mode, is_model_saved, game_speed, end_processes))
+    p_env_train = mp.Process(target = start_env, args = (episode, loss, best_dist, step, reward, training_time, speed, car_action, game_time, current_dist, is_training_mode, is_model_saved, game_speed, end_processes))
+    p_graphic = mp.Process(target = Graphic, args=(episode, loss, best_dist, step, reward, training_time, speed, car_action, game_time, current_dist, is_training_mode, is_model_saved, game_speed, end_processes))
 
     p_env_train.start()
     p_graphic.start()

@@ -4,22 +4,19 @@ import torch.optim as optim
 
 from config import LR, GAMMA, BATCH_SIZE, SYNC_MODELS_RATE, SAVE_MODELS_RATE, EPSILON_START, EPSILON_END, EPSILON_DECAY, LOAD_SAVED_MODEL
 
-class DQNTrainer:
+class SACTrainer:
 
-    def __init__(self, model, target_model, experience_buffer, epsilon, epoch, loss, device, is_model_saved, end_processes, track_name, training_time):
+    def __init__(self, policy_model, value_model, epoch, loss, device, is_model_saved, end_processes, track_name, training_time):
 
         # Track name
         self.track_name = track_name
         
         # Model
-        self.model = model
-        self.target_model = target_model
+        self.policy_model = policy_model
+        self.value_model = value_model
 
         if LOAD_SAVED_MODEL:
             self.load_model()
-
-        # Experience buffer
-        self.experience_buffer = experience_buffer
 
         # Training states : shared memory
         self.epsilon = epsilon
@@ -37,33 +34,20 @@ class DQNTrainer:
         self.device = device
 
     def train_model(self):
-        
-        while len(self.experience_buffer) > BATCH_SIZE:
 
-            # Update model
-            self.update_model()
+        # Update model
+        self.update_model()
 
-            # Update epsilon and epoch
-            self.epoch.value += 1
-            self.epsilon.value = max(EPSILON_END, EPSILON_START - self.epoch.value * EPSILON_DECAY)
+        # Update epoch
+        self.epoch.value += 1
 
-            # Sync models
-            if self.epoch.value % SYNC_MODELS_RATE == 0:
-                self.target_model.load_state_dict(self.model.state_dict())
-
-            # Save model
-            if self.epoch.value % SAVE_MODELS_RATE == 0 or self.end_processes.value == True:
-                self.save_model()
-
-            # End processes
-            if self.end_processes.value:
-                break
+        # Save model
+        if self.epoch.value % SAVE_MODELS_RATE == 0 or self.end_processes.value == True:
+            self.save_model()
 
     def update_model(self):
-        if len(self.experience_buffer) < BATCH_SIZE:
-            return
 
-        states, actions, rewards, dones, next_states = self.experience_buffer.sample()
+        states, actions, rewards, dones, next_states = zip()
 
         states = torch.tensor(states, dtype=torch.float, device=self.device)
         actions = torch.tensor(actions, dtype=torch.int64, device=self.device)

@@ -6,9 +6,8 @@ import sys
 from collections import namedtuple
 
 from agent import Agent
-from dqn_trainer import DQNTrainer
-from model import Model
-from experience_buffer import ExperienceBuffer, Experience
+from dqn_trainer import SACTrainer
+from model import PolicyModel, ValueModel
 from utils import get_distance_to_finish_line, get_list_point_middle_line, get_road_sections
 
 # Input:
@@ -45,8 +44,10 @@ INPUT = [
             }
         ]
 
+Experience = namedtuple('Experience', ('state', 'action', 'reward', 'done', 'next_state'))
+
 class Environment(Client):
-    def __init__(self, epsilon, epoch, loss, best_dist, current_dist, buffer_size, speed, car_action, game_time, training_time, is_training_mode, is_model_saved, game_speed, end_processes) -> None:
+    def __init__(self, episode, loss, best_dist, step, reward, training_time, speed, car_action, game_time, current_dist, is_training_mode, is_model_saved, game_speed, end_processes) -> None:
         super(Environment, self).__init__()
 
         ## Shared memory
@@ -76,11 +77,14 @@ class Environment(Client):
         ## To sort out
         track_name = 'RL_map_training'
         self.device = 'cuda' if torch.cuda.is_available() else 'cpu'
-        self.experience_buffer = ExperienceBuffer()
-        self.model_network = Model(12, 256, 5).to(self.device) #400, 512, 3
-        self.model_target_network = Model(12, 256, 5).to(self.device) #400, 512, 3
-        self.agent = Agent('RL_map_training', self.experience_buffer)
-        self.dqn_trainer = DQNTrainer(self.model_network, self.model_target_network, self.experience_buffer, epsilon, epoch, loss, self.device, is_model_saved, end_processes, track_name, training_time)
+        self.game_experience = []
+
+        self.policy_network = PolicyModel(12, 256, 5).to(self.device) #400, 512, 3
+        self.value_model = ValueModel(12, 256, 5).to(self.device) #400, 512, 3
+
+        self.agent = Agent(track_name)
+        self.dqn_trainer = SACTrainer(self.model_network, self.model_target_network, self.experience_buffer, epsilon, epoch, loss, self.device, is_model_saved, end_processes, track_name, training_time)
+        
         self.inactivity = 0
         self.is_track_finished = False
         self.current_game_speed = 1.0
@@ -92,6 +96,8 @@ class Environment(Client):
         self.previous_dist_to_finish_line = 0
         self.previous_state = None
         self.previous_action = None
+
+        self.episode = 0
 
     # Connection to Trackmania
     def on_registered(self, iface: TMInterface) -> None:
@@ -221,8 +227,8 @@ class Environment(Client):
                 self.dqn_trainer.train_model()
                 iface.give_up()
             
-def start_env(epsilon, epoch, loss, best_dist, current_dist, buffer_size, speed, car_action, game_time, training_time, is_training_mode, is_model_saved, game_speed, end_processes):
+def start_env(episode, loss, best_dist, step, reward, training_time, speed, car_action, game_time, current_dist, is_training_mode, is_model_saved, game_speed, end_processes):
     print("Environment process started")
     server_name = f'TMInterface{sys.argv[1]}' if len(sys.argv) > 1 else 'TMInterface0'
     print(f'Connecting to {server_name}...')
-    run_client(Environment(epsilon, epoch, loss, best_dist, current_dist, buffer_size, speed, car_action, game_time, training_time, is_training_mode, is_model_saved, game_speed, end_processes), server_name)
+    run_client(Environment(episode, loss, best_dist, step, reward, training_time, speed, car_action, game_time, current_dist, is_training_mode, is_model_saved, game_speed, end_processes)

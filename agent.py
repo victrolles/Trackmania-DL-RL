@@ -31,13 +31,11 @@ Step = namedtuple('Step',
 
 class Agent:
 
-    def __init__(self, track_name: str, experience_buffer):
-        self.track_name = track_name
+    def __init__(self, track_name: str):
+
+        # Get Track informations
         self.list_point_middle_line = get_list_point_middle_line(track_name)
         self.road_sections = get_road_sections(track_name)
-
-        # Initialize the experience buffer
-        self.experience_buffer = experience_buffer
 
         # Initialize the list of speed and time
         self.list_speed_time = []
