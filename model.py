@@ -31,17 +31,12 @@ class QModel(nn.Module):
         # For simplicity, we'll design for one-hot encoded actions; adjust if using indices
         self.state_dim = state_dim
         self.network = nn.Sequential(
-            nn.Linear(state_dim + action_dim, hidden_dim),
+            nn.Linear(state_dim, hidden_dim),
             nn.ReLU(),
             nn.Linear(hidden_dim, hidden_dim),
             nn.ReLU(),
-            nn.Linear(hidden_dim, 1)  # Output a single Q-value for the given state-action pair
+            nn.Linear(hidden_dim, action_dim)  # Output a single Q-value for the given state-action pair
         )
 
-    def forward(self, state, action):
-        # Assuming action is already one-hot encoded; if not, encode it here
-        if action.dim() == 1 or action.size(1) == 1:  # Action is provided as indices
-            action = F.one_hot(action.long(), num_classes=self.network[0].in_features - self.state_dim).float()
-
-        x = torch.cat([state, action], dim=1)  # Concatenate state and action
-        return self.network(x)
+    def forward(self, state):
+        return self.network(state)

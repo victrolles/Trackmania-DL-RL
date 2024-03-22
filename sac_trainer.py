@@ -19,7 +19,9 @@ class SACTrainer:
                  end_processes: bool,
                  track_name: str,
                  episode: int,
-                 loss: float,
+                 policy_loss: float,
+                 q1_loss: float,
+                 q2_loss: float,
                  training_time: int):
 
         # Track name
@@ -27,7 +29,9 @@ class SACTrainer:
 
         # Training states : shared memory
         self.episode = episode
-        self.loss = loss
+        self.policy_loss = policy_loss
+        self.q1_loss = q1_loss
+        self.q2_loss = q2_loss
         self.is_model_saved = is_model_saved
         self.end_processes = end_processes
         self.training_time = training_time
@@ -60,29 +64,30 @@ class SACTrainer:
         dones = torch.FloatTensor(dones, device=self.device).unsqueeze(-1)
         next_states = torch.FloatTensor(next_states, device=self.device)
 
-        # Q-models' predictions
+        # Q-Network Update
+        # Get current Q estimates
         current_q1 = self.q1_model(states).gather(1, actions)  # Select the Q-values of the taken actions
         current_q2 = self.q2_model(states).gather(1, actions)
 
-        # Policy's action logits for next states & softmax for probabilities
-        next_action_logits = self.policy_model(next_states)
-        next_probabilities = F.softmax(next_action_logits, dim=-1)
-        
-        # Entropy of the next actions for exploration (assuming a small value for numerical stability)
-        next_entropy = -(next_probabilities * torch.log(next_probabilities + 1e-8)).sum(dim=1, keepdim=True)
+        with torch.no_grad():
 
-        # Expected Q-values from the next state, using the policy's probabilities (soft Q-update)
-        next_q1 = self.q1_model(next_states)
-        next_q2 = self.q2_model(next_states)
-        next_q_values = torch.min(next_q1, next_q2)
-        expected_q = (next_probabilities * next_q_values).sum(dim=1, keepdim=True) - ALPHA * next_entropy
+            # Get next action probabilities from policy network
+            next_action_logits = self.policy_model(next_states)
+            next_probabilities = F.softmax(next_action_logits, dim=-1)
+            next_actions = torch.argmax(next_probabilities, dim=1, keepdim=True)
 
-        # Compute the target for the Q updates
-        q_targets = rewards + (GAMMA * (1 - dones) * expected_q)
+            # Expected Q-values from the next state, using the policy's probabilities (soft Q-update)
+            next_q1 = self.q1_model(next_states).gather(1, next_actions)
+            next_q2 = self.q2_model(next_states).gather(1, next_actions)
+            next_q_values = torch.min(next_q1, next_q2)
+            expected_q = rewards + GAMMA * (1 - dones) * next_q_values
 
         # Q-models' losses and updates
-        q1_loss = F.mse_loss(current_q1, q_targets.detach())
-        q2_loss = F.mse_loss(current_q2, q_targets.detach())
+        q1_loss = F.mse_loss(current_q1, expected_q.detach())
+        q2_loss = F.mse_loss(current_q2, expected_q.detach())
+
+        self.q1_loss.value = q1_loss.item()
+        self.q2_loss.value = q2_loss.item()
         
         self.optimizer_q1.zero_grad()
         q1_loss.backward()
@@ -93,42 +98,27 @@ class SACTrainer:
         self.optimizer_q2.step()
 
         # Update policy model
-        means, log_stds = self.policy_model(states)
-        stds = log_stds.exp()
-        actions = means + stds * torch.randn_like(stds)
+        actions_logits = self.policy_model(states)
+        actions_prob = F.softmax(actions_logits, dim=-1)
+        log_actions_prob  = F.log_softmax(actions_prob, dim=-1)
 
-        q1 = self.q1_model(states, actions)
-        q2 = self.q2_model(states, actions)
-        q_min = torch.min(q1, q2)
+        q1_new = self.q1_model(states)
+        q2_new = self.q2_model(states)
+        q_new = torch.min(q1_new, q2_new)
+        expected_q_values = (actions_prob * q_new).sum(dim=1, keepdim=True)
+        
+        # Calculate the entropy of the policy
+        policy_entropy = -(actions_prob * log_actions_prob ).sum(dim=1, keepdim=True)
 
-        policy_loss = (ALPHA * log_stds.sum(dim=1) - q_min).mean()
+        # Policy loss calculation
+        policy_loss = (ALPHA * policy_entropy - expected_q_values).mean()
 
-        self.optimizer_policy.zero_grad()
-        policy_loss.backward()
-        self.optimizer_policy.step()
-
-        # Update the policy model
-        # Calculate the policy model's logits for the current states
-        logits = self.policy_model(states)
-        probabilities = F.softmax(logits, dim=-1)
-        log_probabilities = F.log_softmax(logits, dim=-1)
-
-        # Calculate the Q-values for the current states and actions
-        q1_values = self.q1_model(states)
-        q2_values = self.q2_model(states)
-        min_q_values = torch.min(q1_values, q2_values)
-
-        # Calculate the expected Q-values weighted by the action probabilities
-        expected_q_values = torch.sum(probabilities * min_q_values, dim=1, keepdim=True)
-
-        # Policy loss is the negative of the expected return plus the entropy bonus
-        policy_loss = -(expected_q_values + ALPHA * torch.sum(probabilities * log_probabilities, dim=1, keepdim=True)).mean()
+        self.policy_loss.value = policy_loss.item()
 
         # Perform backpropagation and update the policy model's parameters
         self.optimizer_policy.zero_grad()
         policy_loss.backward()
         self.optimizer_policy.step()
-
 
 
     def save_model(self):

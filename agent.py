@@ -134,9 +134,9 @@ class Agent:
         Returns:
         - action: The action to be taken, as a numpy array.
         """
-        state = torch.FloatTensor(state, device=device).unsqueeze(0)  # Convert state to tensor and add batch dimension
-        logits = policy_model(state)
-        probabilities = softmax(logits, dim=1)
+        state_tensor = torch.tensor(state, dtype=torch.float32, device=device).unsqueeze(0)  # Convert state to tensor and add batch dimension
+        action_probabilities = policy_model(state_tensor)
+        probabilities = softmax(action_probabilities, dim=1)
 
         if deterministic:
             # Select the action with the highest probability

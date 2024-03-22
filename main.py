@@ -9,7 +9,9 @@ def main():
 
     # Training state
     episode = mp.Value('i', 0)
-    loss = mp.Value('d', 0.0)
+    policy_loss = mp.Value('d', 0.0)
+    q1_loss = mp.Value('d', 0.0)
+    q2_loss = mp.Value('d', 0.0)
     best_dist = mp.Value('d', 0.0)
     step = mp.Value('i', 0)
     reward = mp.Value('i', 0)
@@ -32,8 +34,8 @@ def main():
 
     ## Processes
 
-    p_env_train = mp.Process(target = start_env, args = (episode, loss, best_dist, step, reward, training_time, speed, car_action, game_time, current_dist, is_training_mode, is_model_saved, game_speed, end_processes))
-    p_graphic = mp.Process(target = Graphic, args=(episode, loss, best_dist, step, reward, training_time, speed, car_action, game_time, current_dist, is_training_mode, is_model_saved, game_speed, end_processes))
+    p_env_train = mp.Process(target = start_env, args = (episode, policy_loss, q1_loss, q2_loss, best_dist, step, reward, training_time, speed, car_action, game_time, current_dist, is_training_mode, is_model_saved, game_speed, end_processes))
+    p_graphic = mp.Process(target = Graphic, args=(episode, policy_loss, q1_loss, q2_loss, best_dist, step, reward, training_time, speed, car_action, game_time, current_dist, is_training_mode, is_model_saved, game_speed, end_processes))
 
     p_env_train.start()
     p_graphic.start()

@@ -10,7 +10,7 @@ from utils import convert_seconds
 Size_screen = namedtuple('Size_screen', ['width', 'height'])
 
 class Graphic:
-    def __init__(self, episode, loss, best_dist, step, reward, training_time, speed, car_action, game_time, current_dist, is_training_mode, is_model_saved, game_speed, end_processes):
+    def __init__(self, episode, policy_loss, q1_loss, q2_loss, best_dist, step, reward, training_time, speed, car_action, game_time, current_dist, is_training_mode, is_model_saved, game_speed, end_processes):
 
         print("Graphic process started", flush=True)
 
@@ -19,7 +19,9 @@ class Graphic:
         # Training state
         self.episode = episode
         self.step = step
-        self.loss = loss
+        self.policy_loss = policy_loss
+        self.q1_loss = q1_loss
+        self.q2_loss = q2_loss
         self.best_dist = best_dist
         self.current_dist = current_dist
         self.reward = reward
@@ -51,7 +53,7 @@ class Graphic:
         self.root.geometry(str(self.screen_size.width) + "x" + str(self.screen_size.height))
 
         # Matplotlib
-        self.plot = Plot(self.root, self.loss, self.current_dist)
+        self.plot = Plot(self.root, self.policy_loss, self.q1_loss, self.q2_loss, self.current_dist)
 
         # Init
         self.root.resizable(False, False)
@@ -78,7 +80,6 @@ class Graphic:
         # Training state
         self.label_episode = tk.Label(self.root, text=f"Episode: {self.episode.value:.3f}", bg="#0000CC", fg="#FFFFFF", font=("Arial", 15))
         self.label_step = tk.Label(self.root, text=f"Step: {self.step.value}", bg="#0000CC", fg="#FFFFFF", font=("Arial", 15))
-        self.label_loss = tk.Label(self.root, text=f"Loss: {self.loss.value:.3f}", bg="#0000CC", fg="#FFFFFF", font=("Arial", 15))
         self.label_best_dist = tk.Label(self.root, text=f"Best dist: {self.best_dist.value:.3f}", bg="#0000CC", fg="#FFFFFF", font=("Arial", 15))
         self.label_current_dist = tk.Label(self.root, text=f"Current dist: {self.current_dist.value:.3f}", bg="#0000CC", fg="#FFFFFF", font=("Arial", 15))
         self.label_reward = tk.Label(self.root, text=f"Total reward: {self.reward.value}", bg="#0000CC", fg="#FFFFFF", font=("Arial", 15))
@@ -137,7 +138,6 @@ class Graphic:
         # infos:
         self.label_step.grid(column=0, row=2, sticky=tk.N, padx=5, pady=5)
         self.label_best_dist.grid(column=0, row=3, sticky=tk.N, padx=5, pady=5)
-        self.label_loss.grid(column=0, row=4, sticky=tk.N, padx=5, pady=5)
         self.label_episode.grid(column=0, row=5, sticky=tk.N, padx=5, pady=5)
         self.label_reward.grid(column=0, row=6, sticky=tk.N, padx=5, pady=5)
         self.label_training_time.grid(column=0, row=7, sticky=tk.N, padx=5, pady=5)
@@ -229,7 +229,6 @@ class Graphic:
     def update_infos(self):
         self.label_episode.config(text=f"Episode: {self.episode.value:.3f}")
         self.label_step.config(text=f"Step: {self.step.value}")
-        self.label_loss.config(text=f"Loss: {self.loss.value:.3f}")
         self.label_best_dist.config(text=f"Best dist: {self.best_dist.value:.3f}")
         self.label_current_dist.config(text=f"Current dist: {self.current_dist.value:.3f}")
         self.label_reward.config(text=f"Total reward: {self.reward.value}")
@@ -245,25 +244,36 @@ class Graphic:
         self.label_fps.config(text=f"FPS: {self.fps}")
 
 class Plot:
-    def __init__(self, root, loss, distance):
+    def __init__(self, root, policy_loss, q1_loss, q2_loss, distance):
         self.root = root
-        self.loss = loss
+        self.policy_loss = policy_loss
+        self.q1_loss = q1_loss
+        self.q2_loss = q2_loss
         self.distance = distance
 
-        self.fig, (self.graph_distances, self.graph_losses) = plt.subplots(1, 2, figsize=(8, 4))
+        self.fig, (self.graph_distances, self.graph_policy_loss) = plt.subplots(1, 2, figsize=(8, 4))
         self.fig.suptitle('Training Curves')
+        self.graph_q_losses = self.graph_policy_loss.twinx()
 
         self.list_distances = [0]
-        self.list_losses = [0.0]
+        self.list_policy_losses = [0.0]
+        self.list_q1_losses = [0.0]
+        self.list_q2_losses = [0.0]
 
         self.canvas = FigureCanvasTkAgg(self.fig, master=self.root)
         self.canvas.get_tk_widget().grid(column=0, row=11, columnspan=4, rowspan=6, sticky=tk.S, padx=5, pady=5)
 
     def update_infos(self):
-        if self.loss.value != self.list_losses[-1]:
-            self.list_losses.append(self.loss.value)
+        if self.policy_loss.value != self.list_policy_losses[-1]:
+            self.list_policy_losses.append(self.policy_loss.value)
+
+        if self.q1_loss.value != self.list_q1_losses[-1]:
+            self.list_q1_losses.append(self.q1_loss.value)
             if self.distance.value != self.list_distances[-1] and self.distance.value > 3.0:
                 self.list_distances.append(self.distance.value)
+
+        if self.q2_loss.value != self.list_q2_losses[-1]:
+            self.list_q2_losses.append(self.q2_loss.value)
 
     def update_plot(self):
         # Update graph distances
@@ -272,17 +282,22 @@ class Plot:
         self.graph_distances.set_xlabel('Tries')
         self.graph_distances.set_ylabel('Distance')
         self.graph_distances.plot(self.list_distances)
-        self.graph_distances.set_ylim(ymin=0)
+        # self.graph_distances.set_ylim(ymin=0)
         self.graph_distances.text(len(self.list_distances)-1, self.list_distances[-1], str(self.list_distances[-1]))
 
         # Update graph losses
-        self.graph_losses.clear()
-        self.graph_losses.set_title('Losses :')
-        self.graph_losses.set_xlabel('Epochs')
-        self.graph_losses.set_ylabel('Loss')
-        self.graph_losses.plot(self.list_losses)
-        self.graph_losses.set_ylim(ymin=0)
-        self.graph_losses.text(len(self.list_losses)-1, self.list_losses[-1], "{:.2f}".format(self.list_losses[-1]))
+        self.graph_policy_loss.clear()
+        self.graph_policy_loss.set_title('Losses :')
+        self.graph_policy_loss.set_xlabel('Epochs')
+        self.graph_policy_loss.set_ylabel('Loss')
+        self.graph_policy_loss.plot(self.list_policy_losses, label="Policy loss", color="blue")
+        self.graph_policy_loss.legend(loc='upper left')
+
+        self.graph_q_losses.clear()
+        self.graph_q_losses.plot(self.list_q1_losses, label="Q1 loss", color="green")
+        self.graph_q_losses.plot(self.list_q2_losses, label="Q2 loss", color="red")
+        self.graph_q_losses.legend(loc='upper right')
+
 
         # Draw
         self.canvas.draw()

@@ -48,14 +48,16 @@ INPUT = [
 Experience = namedtuple('Experience', ('state', 'action', 'reward', 'done', 'next_state'))
 
 class Environment(Client):
-    def __init__(self, episode, loss, best_dist, step, reward, training_time, speed, car_action, game_time, current_dist, is_training_mode, is_model_saved, game_speed, end_processes) -> None:
+    def __init__(self, episode, policy_loss, q1_loss, q2_loss, best_dist, step, reward, training_time, speed, car_action, game_time, current_dist, is_training_mode, is_model_saved, game_speed, end_processes) -> None:
         super(Environment, self).__init__()
 
         ## Shared memory
 
         # Training state
         self.episode = episode
-        self.loss = loss
+        self.policy_loss = policy_loss
+        self.q1_loss = q1_loss
+        self.q2_loss = q2_loss
         self.best_dist = best_dist
         self.step = step
         self.reward = reward
@@ -85,7 +87,7 @@ class Environment(Client):
         self.q2_model = QModel(12, 5).to(self.device)
 
         self.agent = Agent(track_name)
-        self.dqn_trainer = SACTrainer(self.policy_model, self.q1_model, self.q2_model, self.device, self.is_model_saved, self.end_processes, track_name, self.episode, self.loss, self.training_time)
+        self.dqn_trainer = SACTrainer(self.policy_model, self.q1_model, self.q2_model, self.device, self.is_model_saved, self.end_processes, track_name, self.episode, self.policy_loss, self.q1_loss, self.q2_loss, self.training_time)
         
         self.inactivity = 0
         self.is_track_finished = bool(False)
@@ -200,7 +202,7 @@ class Environment(Client):
             
             # --- Get current STATE  ---
             if gave_over:
-                current_state = None
+                current_state = State(0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0)
             else:
                 current_state = self.agent.get_state(iface_state, _time)
             
@@ -244,8 +246,8 @@ class Environment(Client):
                 
                 iface.give_up()
             
-def start_env(episode, loss, best_dist, step, reward, training_time, speed, car_action, game_time, current_dist, is_training_mode, is_model_saved, game_speed, end_processes):
+def start_env(episode, policy_loss, q1_loss, q2_loss, best_dist, step, reward, training_time, speed, car_action, game_time, current_dist, is_training_mode, is_model_saved, game_speed, end_processes):
     print("Environment process started")
     server_name = f'TMInterface{sys.argv[1]}' if len(sys.argv) > 1 else 'TMInterface0'
     print(f'Connecting to {server_name}...')
-    run_client(Environment(episode, loss, best_dist, step, reward, training_time, speed, car_action, game_time, current_dist, is_training_mode, is_model_saved, game_speed, end_processes))
+    run_client(Environment(episode, policy_loss, q1_loss, q2_loss, best_dist, step, reward, training_time, speed, car_action, game_time, current_dist, is_training_mode, is_model_saved, game_speed, end_processes))
