@@ -95,13 +95,25 @@ def get_positional_informations(car_location, yaw, list_points_on_middle_line, r
 
         previous_point = point
 
+    if min_point and min_previous_point:
+        # Vector from the closest point to the next point on the middle line
+        vector_a = (min_point[0] - min_previous_point[0], min_point[1] - min_previous_point[1])
+        # Vector from the closest point on the middle line to the car
+        vector_b = (car_location[0] - min_previous_point[0], car_location[2] - min_previous_point[1])
+        
+        # Cross product to determine the side
+        cross_product_z = vector_a[0] * vector_b[1] - vector_a[1] * vector_b[0]
+        
+        # Assign positive or negative based on the side
+        final_distance = min_distance * math.copysign(1, cross_product_z)
+
     # Get the angle between the road's direction and car's direction
     angle = calculate_relative_angle(yaw, get_angle_from_two_points(min_point, min_previous_point))
 
     # Get distance and direction to the next turns
     dist_1st_turn, dist_2nd_turn, dir_1st_turn, dir_2nd_turn = get_informations_from_turns(min_point, road_sections)
 
-    return [min_distance, angle, dist_1st_turn, dist_2nd_turn, dir_1st_turn, dir_2nd_turn]
+    return [final_distance, angle, dist_1st_turn, dist_2nd_turn, dir_1st_turn, dir_2nd_turn]
 
 def get_distance_to_finish_line(car_location, list_points_on_middle_line, road_sections):
 

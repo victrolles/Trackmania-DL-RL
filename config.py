@@ -1,10 +1,13 @@
 # dqn_trainer
 
-LR = 0.01
+LR = 4e-5
 GAMMA = 0.99
 ALPHA = 0.1
 
 LOAD_SAVED_MODEL = False
+
+GAMMA_REWARD = 0.95
+N_STEP = 20
 
 # environment
 
@@ -16,4 +19,3 @@ HIDDEN_DIM = 256
 # experience_buffer
 
 BUFFER_SIZE = 8_192
-BATCH_SIZE = 256

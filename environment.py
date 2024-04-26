@@ -152,7 +152,7 @@ class Environment(Client):
             reward = 0
 
             speed = iface_state.display_speed
-            reward += int(speed / 3)
+            reward += int(speed)
 
             # Get reward from getting closer to finish line
             dist_to_finish_line = get_distance_to_finish_line(iface_state.position,
@@ -160,22 +160,24 @@ class Environment(Client):
                 self.road_sections
            )
             if dist_to_finish_line < self.previous_dist_to_finish_line:
-                reward += 20
+                reward += 10 # 70
             else:
-                reward -= 20
+                reward -= 10 #70
             self.previous_dist_to_finish_line = dist_to_finish_line
 
             # Get reward if no lateral contact
             if iface_state.scene_mobil.has_any_lateral_contact:
-                reward -= 30
+                reward -= 10 #100
             else:
-                reward += 30
+                reward += 10 #30
+
+            # print(f"Reward : {reward}")
 
             # --- get DONE ---
 
             # Restart if too long
             gave_over = False
-            if _time > 25000:
+            if _time > 40000:
                 print("Step restarted : Car is too slow")
                 gave_over = True
                 reward -= 100

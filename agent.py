@@ -90,6 +90,12 @@ class Agent:
         distance_to_centerline = list_infos[0] / 12.0
         angle_to_centerline = list_infos[1] / np.pi
 
+        # Corrrect bug get lateral contact
+        if has_any_lateral_contact == 0.0:
+            if abs(distance_to_centerline) > 0.85 and speed < 0.1:
+                if abs(angle_to_centerline) > 0.20 and abs(angle_to_centerline) < 0.80:
+                    has_any_lateral_contact = 1.0
+
         # Get the distance to the next turns
         distance_to_first_turn = list_infos[2]
         distance_to_first_turn = np.log(1 + 2 * distance_to_first_turn) / np.log(1 + 2 * 500)

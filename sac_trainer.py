@@ -5,7 +5,7 @@ import torch.optim as optim
 import torch.nn.functional as F
 from torch import Tensor
 
-from config import LR, GAMMA, ALPHA, LOAD_SAVED_MODEL
+from config import LR, GAMMA, ALPHA, LOAD_SAVED_MODEL, GAMMA_REWARD, N_STEP
 from model import PolicyModel, QModel
 
 class SACTrainer:
@@ -44,18 +44,22 @@ class SACTrainer:
         # Device
         self.device = device
 
-        if LOAD_SAVED_MODEL:
-            self.load_model()
-
         # Optimizers
         self.optimizer_policy = optim.Adam(policy_model.parameters(), lr=LR)
         self.optimizer_q1 = optim.Adam(q1_model.parameters(), lr=LR)
         self.optimizer_q2 = optim.Adam(q2_model.parameters(), lr=LR)
 
+        # Load saved model
+        if LOAD_SAVED_MODEL:
+            self.load_model()
+
     def train_model(self,
                     game_experience: list):
 
         states, actions, rewards, dones, next_states = zip(*game_experience)
+
+        # Calculate n-step rewards
+        rewards = self.calculate_n_step_reward(rewards)
 
         # Convert to tensors
         states = torch.FloatTensor(states, device=self.device)
@@ -120,8 +124,17 @@ class SACTrainer:
         policy_loss.backward()
         self.optimizer_policy.step()
 
+    def calculate_n_step_reward(self, rewards: list):
+        n_step_rewards = []
+        for i in range(len(rewards)):
+            n_step_reward = sum([GAMMA_REWARD ** j * rewards[i + j] for j in range(min(N_STEP, len(rewards) - i))])
+            n_step_rewards.append(n_step_reward)
+
+        return n_step_rewards
+
 
     def save_model(self):
+        # Fix training time
         torch.save({
             'policy_network_state_dict': self.policy_model.state_dict(),
             'q1_network_state_dict': self.q1_model.state_dict(),

@@ -17,7 +17,7 @@ class MainClient(Client):
     def on_checkpoint_count_changed(self, iface: TMInterface, current: int, target: int):
         if current == target:
             zipped = zip(self.x_values, self.y_values)
-            with open('road_right.csv', 'w', newline='') as file:
+            with open('maps/snake_map_training/road_left.csv', 'w', newline='') as file:
                 writer = csv.writer(file)
                 writer.writerows(zipped)
             iface.close()
