@@ -19,3 +19,6 @@ HIDDEN_DIM = 256
 # experience_buffer
 
 BUFFER_SIZE = 8_192
+
+# inputs
+INPUT_MODE = "screenshot" # "screenshot" or "features"
