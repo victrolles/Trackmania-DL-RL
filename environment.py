@@ -224,9 +224,9 @@ class Environment(Client):
             gray_image = cv2.cvtColor(screen, cv2.COLOR_BGR2GRAY)
 
             # Display the image
-            cv2.imshow(window_name, gray_image)
-            cv2.moveWindow(window_name, -17, 372)
-            cv2.resizeWindow(window_name, 776, 411)
+            # cv2.imshow(window_name, gray_image)
+            # cv2.moveWindow(window_name, -17, 372)
+            # cv2.resizeWindow(window_name, 776, 411)
 
             pixel_matrix = np.array(gray_image)
 
@@ -237,7 +237,7 @@ class Environment(Client):
             input_matrix = normalized_pixel_matrix.reshape(1, *normalized_pixel_matrix.shape)
             current_state = input_matrix
 
-            print("Shape of input matrix:", input_matrix.shape)
+            # print("Shape of input matrix:", input_matrix.shape)
 
             # if gave_over:
             #     current_state = State(0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0)
@@ -273,7 +273,7 @@ class Environment(Client):
 
             # ===== Update the model if game over =====
             if gave_over and len(self.game_experience) > 0:
-                self.episode.value += 1
+                self.epoch.value += 1
                 self.step.value = 0
                 self.reward.value = 0
                 self.previous_dist_to_finish_line = 1103.422 #917.422
@@ -281,7 +281,7 @@ class Environment(Client):
 
                 iface.give_up()
 
-                self.dqn_trainer.train_model(self.game_experience)
+                self.dqn_trainer.train_model()
                 self.game_experience = []
                 
                 iface.give_up()

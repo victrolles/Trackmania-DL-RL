@@ -52,7 +52,7 @@ class Graphic:
         self.root.geometry(str(self.screen_size.width) + "x" + str(self.screen_size.height))
 
         # Matplotlib
-        self.plot = Plot(self.root, self.policy_loss, self.q1_loss, self.q2_loss, self.current_dist)
+        self.plot = Plot(self.root, self.epoch, self.loss, self.current_dist)
 
         # Init
         self.root.resizable(False, False)
