@@ -6,8 +6,8 @@ ALPHA = 0.1
 
 LOAD_SAVED_MODEL = False
 
-GAMMA_REWARD = 0.95
-N_STEP = 20
+GAMMA_REWARD = 0.99
+N_STEP = 60
 
 # environment
 

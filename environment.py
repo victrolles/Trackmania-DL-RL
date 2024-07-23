@@ -78,7 +78,7 @@ class Environment(Client):
         
 
         ## To sort out
-        track_name = str('RL_map_training')
+        track_name = str('snake_map_training')
         self.device = 'cuda' if torch.cuda.is_available() else 'cpu'
         self.game_experience = []
 
@@ -97,7 +97,7 @@ class Environment(Client):
         self.list_point_middle_line = get_list_point_middle_line(track_name)
         self.road_sections = get_road_sections(track_name)
 
-        self.previous_dist_to_finish_line = 917.422
+        self.previous_dist_to_finish_line = 1103.422# 917.422
         self.previous_state = None
         self.previous_action = None
 
@@ -135,7 +135,6 @@ class Environment(Client):
             
             # ===== Switch between Training and Testing Mode =====
             if not self.is_training_mode.value:
-                self.epsilon.value = 0
                 return
             
             # ===== Change Training Speed =====
@@ -160,16 +159,16 @@ class Environment(Client):
                 self.road_sections
            )
             if dist_to_finish_line < self.previous_dist_to_finish_line:
-                reward += 10 # 70
+                reward += 20 # 70
             else:
-                reward -= 10 #70
+                reward -= 20 #70
             self.previous_dist_to_finish_line = dist_to_finish_line
 
             # Get reward if no lateral contact
             if iface_state.scene_mobil.has_any_lateral_contact:
-                reward -= 10 #100
+                reward -= 70 #100
             else:
-                reward += 10 #30
+                reward += 70 #30
 
             # print(f"Reward : {reward}")
 
@@ -180,7 +179,7 @@ class Environment(Client):
             if _time > 40000:
                 print("Step restarted : Car is too slow")
                 gave_over = True
-                reward -= 100
+                reward -= 1
 
             # Restart if the car is stopped
             if speed < 5:
@@ -192,7 +191,7 @@ class Environment(Client):
 
                 print("Step restarted : Car is stopped")
                 gave_over = True
-                reward -= 100
+                reward -= 1000
 
             # Restart if the track is finished
             if self.is_track_finished:
@@ -200,13 +199,15 @@ class Environment(Client):
 
                 print("Step restarted : Track is finished")
                 gave_over = True
-                reward += 100
+                reward += 1000
             
             # --- Get current STATE  ---
             if gave_over:
                 current_state = State(0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0)
             else:
                 current_state = self.agent.get_state(iface_state, _time)
+                reward += int((0.5 - current_state.distance_to_centerline) * 100)
+                # print(f"Reward : {reward}")
             
             # ===== Store the experience in the buffer =====
             if self.previous_state is not None and self.previous_action is not None:
@@ -230,7 +231,7 @@ class Environment(Client):
 
             self.speed.value = iface_state.display_speed
             self.game_time.value = _time
-            self.current_dist.value = 917.422 - dist_to_finish_line
+            self.current_dist.value = 1103.422 - dist_to_finish_line #917.422
             self.best_dist.value = max(self.best_dist.value, self.current_dist.value)
 
             # ===== Update the model if game over =====
@@ -238,7 +239,7 @@ class Environment(Client):
                 self.episode.value += 1
                 self.step.value = 0
                 self.reward.value = 0
-                self.previous_dist_to_finish_line = 917.422
+                self.previous_dist_to_finish_line = 1103.422 #917.422
                 self.inactivity = 0
 
                 iface.give_up()

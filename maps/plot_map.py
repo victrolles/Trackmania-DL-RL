@@ -1,9 +1,11 @@
 import matplotlib.pyplot as plt
 import pandas as pd
 
-left_side_road_coordinates = pd.read_csv('maps/RL_map_training/road_left.csv')
-right_side_road_coordinates = pd.read_csv('maps/RL_map_training/road_right.csv')
-middle_side_road_coordinates = pd.read_csv('maps/RL_map_training/road_middle.csv')
+folder_path = 'maps/snake_map_training/'
+
+left_side_road_coordinates = pd.read_csv(f'{folder_path}/road_left.csv')
+right_side_road_coordinates = pd.read_csv(f'{folder_path}/road_right.csv')
+middle_side_road_coordinates = pd.read_csv(f'{folder_path}/road_middle.csv')
 
 fig, ax = plt.subplots()
 
