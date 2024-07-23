@@ -1,19 +1,20 @@
 import torch
 import torch.nn as nn
 import torch.optim as optim
+from dqn_model import DQNModel
 
 from config import LR, GAMMA, BATCH_SIZE, SYNC_MODELS_RATE, SAVE_MODELS_RATE, EPSILON_START, EPSILON_END, EPSILON_DECAY, LOAD_SAVED_MODEL
 
 class DQNTrainer:
 
-    def __init__(self, model, target_model, experience_buffer, epsilon, epoch, loss, device, is_model_saved, end_processes, track_name, training_time):
+    def __init__(self, experience_buffer, epsilon, epoch, loss, device, is_model_saved, end_processes, track_name, training_time):
 
         # Track name
         self.track_name = track_name
         
         # Model
-        self.model = model
-        self.target_model = target_model
+        self.model_network = DQNModel(5, 256).to(self.device) #400, 512, 3
+        self.model_target_network = DQNModel(5, 256).to(self.device) #400, 512, 3
 
         if LOAD_SAVED_MODEL:
             self.load_model()
@@ -71,33 +72,11 @@ class DQNTrainer:
         next_states = torch.tensor(next_states, dtype=torch.float, device=self.device)
         dones = torch.ByteTensor(dones, device=self.device)
 
-        # print(f"states: {states}")
-        # print(f"actions: {actions}")
-        # print(f"rewards: {rewards}")
-        # print(f"dones: {dones}")
-        # print(f"next_states: {next_states}")
-        # print(f'self.model(states): {self.model(states)}')
-
         state_action_values = self.model(states).gather(1, actions.unsqueeze(1)).squeeze(1)
-        # print(f'state_action_values: {state_action_values}')
-
-        # Compute the next state values
-        # next_state_values = torch.zeros(BATCH_SIZE, device=self.device)
-        # with torch.no_grad():
-        #     for i in range(BATCH_SIZE):
-        #         if dones[i] == 0:
-        #             next_state_values[i] = self.target_model(next_states[i]).max(0)[0].detach()
-        # print(f'next_state_values: {next_state_values}')
-        # print(f'self.target_model(next_states): {self.target_model(next_states)}')
-        # print(f'self.target_model(next_states).max(1): {self.target_model(next_states).max(1)}')
-        # print(f'self.target_model(next_states).max(0): {self.target_model(next_states).max(0)}')
-        # print(f'self.target_model(next_states).max(1)[0]: {self.target_model(next_states).max(1)[0]}')
-       
         next_state_values = self.target_model(next_states).max(1)[0].detach()
 
         # Compute the expected state action values
         expected_state_action_values = next_state_values * GAMMA + rewards
-        # print(f'expected_state_action_values: {expected_state_action_values}')
 
         # Compute the loss
         loss = self.criterion(state_action_values, expected_state_action_values)

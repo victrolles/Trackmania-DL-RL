@@ -6,7 +6,7 @@ import torch.nn.functional as F
 from torch import Tensor
 
 from config import LR, GAMMA, ALPHA, LOAD_SAVED_MODEL, GAMMA_REWARD, N_STEP
-from model import PolicyModel, QModel
+from rl_algorithms.sac.sac_model import PolicyModel, QModel
 
 class SACTrainer:
 

@@ -5,10 +5,14 @@ from typing import Literal
 from tminterface.interface import TMInterface
 from tminterface.client import Client, run_client
 import torch
+import win32gui
+import win32con
+import cv2
+from PIL import ImageGrab
+import numpy as np
 
-from agent import Agent, State
-from sac_trainer import SACTrainer
-from model import PolicyModel, QModel
+from agent import Agent
+from rl_algorithms.dqn.dqn_trainer import DQNTrainer
 from utils import get_distance_to_finish_line, get_list_point_middle_line, get_road_sections
 
 # Input:
@@ -48,16 +52,15 @@ INPUT = [
 Experience = namedtuple('Experience', ('state', 'action', 'reward', 'done', 'next_state'))
 
 class Environment(Client):
-    def __init__(self, episode, policy_loss, q1_loss, q2_loss, best_dist, step, reward, training_time, speed, car_action, game_time, current_dist, is_training_mode, is_model_saved, game_speed, end_processes) -> None:
+    def __init__(self, epsilon, epoch, loss, best_dist, step, reward, training_time, speed, car_action, game_time, current_dist, is_training_mode, is_model_saved, game_speed, end_processes) -> None:
         super(Environment, self).__init__()
 
         ## Shared memory
 
         # Training state
-        self.episode = episode
-        self.policy_loss = policy_loss
-        self.q1_loss = q1_loss
-        self.q2_loss = q2_loss
+        self.epsilon = epsilon
+        self.epoch = epoch
+        self.loss = loss
         self.best_dist = best_dist
         self.step = step
         self.reward = reward
@@ -75,20 +78,29 @@ class Environment(Client):
         self.game_speed = game_speed
         self.end_processes = end_processes
 
-        
+        # Setup screen and game
+        def set_window_pos(window_name, x, y, width, height):
+            hwnd = win32gui.FindWindow(None, window_name)
+            if hwnd:
+                # print(win32gui.GetWindowRect(hwnd))
+                win32gui.SetWindowPos(hwnd, win32con.HWND_TOP, x, y, width, height, 0)
+
+        # Example usage
+        name = "TrackMania Nations Forever (TMInterface 1.4.3)"
+        set_window_pos(name, -6, 0, 256, 256)  # Replace 'Google Chrome' with the exact window title
 
         ## To sort out
         track_name = str('snake_map_training')
         self.device = 'cuda' if torch.cuda.is_available() else 'cpu'
         self.game_experience = []
 
-        self.policy_model = PolicyModel(12, 5).to(self.device) #400, 512, 3
-        self.q1_model = QModel(12, 5).to(self.device)
-        self.q2_model = QModel(12, 5).to(self.device)
+        # self.policy_model = PolicyModel(12, 5).to(self.device) #400, 512, 3
+        # self.q1_model = QModel(12, 5).to(self.device)
+        # self.q2_model = QModel(12, 5).to(self.device)
 
         self.agent = Agent(track_name)
-        self.dqn_trainer = SACTrainer(self.policy_model, self.q1_model, self.q2_model, self.device, self.is_model_saved, self.end_processes, track_name, self.episode, self.policy_loss, self.q1_loss, self.q2_loss, self.training_time)
-        
+        # self.dqn_trainer = SACTrainer(self.policy_model, self.q1_model, self.q2_model, self.device, self.is_model_saved, self.end_processes, track_name, self.episode, self.policy_loss, self.q1_loss, self.q2_loss, self.training_time)
+        self.dqn_trainer = DQNTrainer(self.game_experience, self.epsilon, self.epoch, self.loss, self.device, self.is_model_saved, self.end_processes, track_name, self.training_time)
         self.inactivity = 0
         self.is_track_finished = bool(False)
         self.current_game_speed = 1.0
@@ -202,12 +214,37 @@ class Environment(Client):
                 reward += 1000
             
             # --- Get current STATE  ---
-            if gave_over:
-                current_state = State(0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0)
-            else:
-                current_state = self.agent.get_state(iface_state, _time)
-                reward += int((0.5 - current_state.distance_to_centerline) * 100)
-                # print(f"Reward : {reward}")
+
+            window_name = 'window'
+
+            # Grab BGR image from the screen
+            screen = np.array(ImageGrab.grab(bbox=(0, 60, 256, 316)))
+
+            # Convert the image to grayscale
+            gray_image = cv2.cvtColor(screen, cv2.COLOR_BGR2GRAY)
+
+            # Display the image
+            cv2.imshow(window_name, gray_image)
+            cv2.moveWindow(window_name, -17, 372)
+            cv2.resizeWindow(window_name, 776, 411)
+
+            pixel_matrix = np.array(gray_image)
+
+            # Normalize pixel values to the range [0, 1]
+            normalized_pixel_matrix = pixel_matrix / 255.0
+
+            # Example: Reshape the matrix if needed (for instance, adding a batch dimension)
+            input_matrix = normalized_pixel_matrix.reshape(1, *normalized_pixel_matrix.shape)
+            current_state = input_matrix
+
+            print("Shape of input matrix:", input_matrix.shape)
+
+            # if gave_over:
+            #     current_state = State(0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0)
+            # else:
+            #     current_state = self.agent.get_state(iface_state, _time)
+            #     reward += int((0.5 - current_state.distance_to_centerline) * 100)
+            #     # print(f"Reward : {reward}")
             
             # ===== Store the experience in the buffer =====
             if self.previous_state is not None and self.previous_action is not None:
@@ -221,7 +258,7 @@ class Environment(Client):
                 self.car_action.value = -1
             else:
                 self.previous_state = current_state
-                self.previous_action = self.agent.get_action(self.policy_model, self.previous_state, self.device)
+                self.previous_action = self.agent.get_action(self.dqn_trainer.model_network, self.previous_state, self.epsilon, self.device)
                 iface.set_input_state(**INPUT[self.previous_action])
                 self.car_action.value = self.previous_action
 
@@ -249,8 +286,8 @@ class Environment(Client):
                 
                 iface.give_up()
             
-def start_env(episode, policy_loss, q1_loss, q2_loss, best_dist, step, reward, training_time, speed, car_action, game_time, current_dist, is_training_mode, is_model_saved, game_speed, end_processes):
+def start_env(epsilon, epoch, loss, best_dist, step, reward, training_time, speed, car_action, game_time, current_dist, is_training_mode, is_model_saved, game_speed, end_processes):
     print("Environment process started")
     server_name = f'TMInterface{sys.argv[1]}' if len(sys.argv) > 1 else 'TMInterface0'
     print(f'Connecting to {server_name}...')
-    run_client(Environment(episode, policy_loss, q1_loss, q2_loss, best_dist, step, reward, training_time, speed, car_action, game_time, current_dist, is_training_mode, is_model_saved, game_speed, end_processes))
+    run_client(Environment(epsilon, epoch, loss, best_dist, step, reward, training_time, speed, car_action, game_time, current_dist, is_training_mode, is_model_saved, game_speed, end_processes))

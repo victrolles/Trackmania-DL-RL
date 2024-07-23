@@ -1,24 +1,20 @@
 # dqn_trainer
 
-LR = 4e-5
+LR = 0.01
 GAMMA = 0.99
-ALPHA = 0.1
+
+SYNC_MODELS_RATE = 50
+SAVE_MODELS_RATE = 50
 
 LOAD_SAVED_MODEL = False
 
-GAMMA_REWARD = 0.99
-N_STEP = 60
+# main
 
-# environment
-
-SAVE_MODELS_RATE = 10
-
-# model
-HIDDEN_DIM = 256
+EPSILON_START = 1.0
+EPSILON_END = 0.01 
+EPSILON_DECAY = 0.001
 
 # experience_buffer
 
 BUFFER_SIZE = 8_192
-
-# inputs
-INPUT_MODE = "screenshot" # "screenshot" or "features"
+BATCH_SIZE = 256
