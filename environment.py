@@ -1,6 +1,7 @@
 import sys
 import math
 import json
+import time
 
 from tminterface.interface import TMInterface
 from tminterface.client import Client, run_client
@@ -8,7 +9,7 @@ import pandas as pd
 import torch
 
 from config.data_classes import Point2D, DataBus, TMSimulationResult, Exp
-from config.globals import TRACK_NAME, TRACK_LENGTH, BUFFER_SIZE
+from config.globals import TRACK_NAME, TRACK_LENGTH, BUFFER_SIZE, FRAME_COOLDOWN_ACTION, FRAME_COOLDOWN_DISPLAY_STATE, FRAME_COOLDOWN_DISPLAY_STATS
 from config.dictionaries import INPUT
 
 from tm_agents.radar_agent import RadarAgent
@@ -17,12 +18,19 @@ from rl_algorithms.dqn.dqn_trainer import DQNTrainer
 from rl_algorithms.experience_buffer import ExperienceBuffer
 
 class Environment(Client):
-    def __init__(self, databus_buffer: DataBus, end_processes) -> None:
+    def __init__(self, databus_buffer: DataBus, end_processes, tm_speed, is_training, save_model, is_map_render, is_curves_render) -> None:
         super(Environment, self).__init__()
 
-        ## Shared memory
+        ## Bus data
         self.databus_buffer = databus_buffer
+
+        ## Shared memory
         self.end_processes = end_processes
+        self.tm_speed = tm_speed
+        self.is_training = is_training
+        self.save_model = save_model
+        self.is_map_render = is_map_render
+        self.is_curves_render = is_curves_render
 
 
         self.device = 'cuda' if torch.cuda.is_available() else 'cpu'
@@ -32,6 +40,10 @@ class Environment(Client):
         self.previous_state = None
         self.previous_action = None
         self.inactivity = 0
+        self.is_track_finished = False
+        self.current_game_speed = 1.0
+        self.training_stats = None
+        self.start_total_time = time.time()
 
         
         list_points_left_border = pd.read_csv(f'extras/maps/{TRACK_NAME}/road_left.csv')
@@ -104,11 +116,22 @@ class Environment(Client):
         if _time >= 0:
             self.iter += 1
 
-            if self.iter % 20 == 0:
+            if self.iter % FRAME_COOLDOWN_ACTION == 0:
 
                 # ===== Stop the process if needed =====
                 if self.end_processes.value:
                     self.stop_env_process(iface)
+
+                # ===== Change Training Speed =====
+                if self.current_game_speed != self.tm_speed.value:
+                    self.current_game_speed = self.tm_speed.value
+                    iface.set_speed(self.tm_speed.value)
+
+                # ===== Save the model if needed =====
+                if self.save_model.value:
+                    self.dqn_trainer.save_model()
+                    print("Models correctly saved")
+                    self.save_model.value = False
 
                 iface_state = iface.get_simulation_state()
                 
@@ -134,23 +157,38 @@ class Environment(Client):
                     self.previous_action = None
                 else:
                     self.previous_state = state
-                    self.previous_action = self.agent.get_action(self.dqn_trainer.model_network, self.previous_state.distances, self.dqn_trainer.epsilon, self.device)
+                    self.previous_action = self.agent.get_action(self.dqn_trainer.model_network,
+                                                                 self.previous_state.distances,
+                                                                 self.dqn_trainer.epsilon,
+                                                                 self.device,
+                                                                 self.is_training.value)
                     # print(self.previous_action, flush=True)
                     iface.set_input_state(**INPUT[self.previous_action])
 
-                data_bus = DataBus(state.car_pos, state.car_ahead_pos, state.detected_points)
-                self.databus_buffer.put(data_bus)
+                if self.iter % FRAME_COOLDOWN_DISPLAY_STATE == 0 and self.is_map_render.value:
+                    self.databus_buffer.put(DataBus(state,
+                                                    None,
+                                                    time.time() - self.start_total_time,
+                                                    0,
+                                                    self.iter/(time.time() - self.start_total_time)))
 
                 # ===== Update the model if game over =====
                 if tm_simulation_result.done and len(self.experience_buffer) > 0:
-                    self.previous_dist_to_finish_line = TRACK_LENGTH
-                    self.inactivity = 0
-
                     iface.give_up()
 
-                    self.dqn_trainer.train_model()
+                    self.training_stats = self.dqn_trainer.train_model()
+
+                    if self.iter % FRAME_COOLDOWN_DISPLAY_STATS == 0 and self.is_curves_render.value:
+                        self.databus_buffer.put(DataBus(None,
+                                                        self.training_stats,
+                                                        time.time() - self.start_total_time,
+                                                        self.previous_dist_to_finish_line,
+                                                        self.iter/(time.time() - self.start_total_time)))
                     
                     iface.give_up()
+
+                    self.previous_dist_to_finish_line = TRACK_LENGTH
+                    self.inactivity = 0
 
     def stop_env_process(self, iface: TMInterface) -> None:
         # Close the connection to Trackmania
@@ -301,8 +339,8 @@ def get_road_sections():
     return file_data["road_sections"]
 
 
-def start_env(databus_buffer: DataBus, end_processes) -> None:
+def start_env(databus_buffer: DataBus, end_processes, tm_speed, is_training, save_model, is_map_render, is_curves_render) -> None:
     print("Environment process started")
     server_name = f'TMInterface{sys.argv[1]}' if len(sys.argv) > 1 else 'TMInterface0'
     print(f'Connecting to {server_name}...')
-    run_client(Environment(databus_buffer, end_processes))
+    run_client(Environment(databus_buffer, end_processes, tm_speed, is_training, save_model, is_map_render, is_curves_render))

@@ -43,6 +43,14 @@ class TMSimulationResult:
     score: float
 
 @dataclass
+class TrainingStats:
+    epoch: int
+    step: int
+    loss: float
+    training_time: float
+    epsilon: float
+
+@dataclass
 class Exp:
     state: RadarState
     action: int
@@ -52,6 +60,8 @@ class Exp:
 
 @dataclass
 class DataBus:
-    car_pos: Point2D
-    car_ahead_pos: Point2D
-    detected_points: list[DetectedPoint]
+    radar_state: RadarState
+    training_stats: TrainingStats
+    total_time: float
+    distance_travelled: float
+    fps_env: float

@@ -1,8 +1,12 @@
+import time
+
 import torch
 import torch.nn as nn
 import torch.optim as optim
 
 from config.globals import LR, GAMMA, BATCH_SIZE, SYNC_TARGET_RATE, SAVE_MODELS_RATE, EPSILON_START, EPSILON_END, EPSILON_DECAY, LOAD_SAVED_MODEL, TRACK_NAME
+from config.data_classes import TrainingStats
+
 from rl_algorithms.dqn.dqn_model import DQNModel
 from rl_algorithms.experience_buffer import ExperienceBuffer
 
@@ -35,7 +39,9 @@ class DQNTrainer:
         self.optimizer = optim.Adam(self.model_network.parameters(), lr=LR)
         self.criterion = nn.MSELoss()
 
-    def train_model(self):
+    def train_model(self) -> TrainingStats:
+        
+        start_training_time = time.time()
         
         self.epoch += 1
         self.step = 0
@@ -52,6 +58,10 @@ class DQNTrainer:
 
             if self.stop_training:
                 break
+
+        self.training_time += time.time() - start_training_time
+
+        return TrainingStats(self.epoch, self.step, self.loss, self.training_time, self.epsilon)    
 
     def update_model(self):
 

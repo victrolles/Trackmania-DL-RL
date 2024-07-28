@@ -34,9 +34,9 @@ class RadarAgent:
 
         return RadarState(car_pos, car_pos_ahead, detected_points, distances)
 
-    def get_action(self, model_network, state, epsilon, device):
+    def get_action(self, model_network, state, epsilon, device, is_training = True) -> int:
         # Espilon-Greedy: tradeoff exploration / exploitation
-        if np.random.random() < epsilon:
+        if np.random.random() < epsilon and is_training:
             move = np.random.randint(0, 5)
             # print("Random move: ", move, flush=True)
         else:

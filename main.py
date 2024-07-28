@@ -6,37 +6,21 @@ from graphic import Graphic
 
 def main():
 
-    ## Shared memory
-
-    # Training state
-    # epsilon = mp.Value('d', EPSILON_START)
-    # epoch = mp.Value('i', 0)
-    # loss = mp.Value('d', 0.0)
-    # best_dist = mp.Value('d', 0.0)
-    # step = mp.Value('i', 0)
-    # reward = mp.Value('i', 0)
-    # training_time = mp.Value('i', 0)
-
-    # # Car state
-    # speed = mp.Value('i', 0)
-    # car_action = mp.Value('i', 0)
-    # game_time = mp.Value('i', 0)
-    # current_dist = mp.Value('d', 0.0)
-
-    # # Actions
-    # is_training_mode = mp.Value('b', True)
-    # is_model_saved = mp.Value('b', False)
-    # game_speed = mp.Value('d', 1.0)
-    end_processes = mp.Value('b', False)
+    # data bus
     databus_buffer = mp.Queue(maxsize=BUFFER_SIZE)
-    # test model
-    # load model
-    # pause_rendering
+
+    # controllers
+    end_processes = mp.Value('b', False)
+    tm_speed = mp.Value('f', 1.0)
+    is_training = mp.Value('b', True)
+    save_model = mp.Value('b', False)
+    is_map_render = mp.Value('b', True)
+    is_curves_render = mp.Value('b', True)
 
     ## Processes
 
-    p_env_train = mp.Process(target = start_env, args = (databus_buffer, end_processes))
-    p_graphic = mp.Process(target = Graphic, args=(databus_buffer, end_processes))
+    p_env_train = mp.Process(target = start_env, args = (databus_buffer, end_processes, tm_speed, is_training, save_model, is_map_render, is_curves_render))
+    p_graphic = mp.Process(target = Graphic, args=(databus_buffer, end_processes, tm_speed, is_training, save_model, is_map_render, is_curves_render))
     p_env_train.start()
     p_graphic.start()
 
