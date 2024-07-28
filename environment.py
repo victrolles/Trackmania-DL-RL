@@ -89,7 +89,7 @@ class Environment(Client):
     # Connection to Trackmania
     def on_registered(self, iface: TMInterface) -> None:
         print(f'Registered to {iface.server_name}', flush=True)
-        iface.set_timeout(20_000)
+        iface.set_timeout(40_000)
         iface.give_up()
 
     # Function to detect if the car crossed the finish line
@@ -104,7 +104,7 @@ class Environment(Client):
         if _time >= 0:
             self.iter += 1
 
-            if self.iter % 30 == 0:
+            if self.iter % 20 == 0:
 
                 # ===== Stop the process if needed =====
                 if self.end_processes.value:
@@ -114,7 +114,7 @@ class Environment(Client):
                 
                 # ===== Get the state =====
                 state = self.agent.get_state(iface_state)
-                print(state.distances, flush=True)
+                # print(state.distances, flush=True)
 
                 # ===== Get the TM simulation result =====
                 tm_simulation_result = self.get_TM_simulation_result(iface_state, _time)
@@ -129,13 +129,14 @@ class Environment(Client):
                     self.experience_buffer._append(experience)
 
                 # ===== Get the current state of the car =====
-                # if tm_simulation_result.done:
-                #     self.previous_state = None
-                #     self.previous_action = None
-                # else:
-                #     self.previous_state = state
-                #     self.previous_action = self.agent.get_action(self.dqn_trainer.model_network, self.previous_state.distances, self.dqn_trainer.epsilon, self.device)
-                #     iface.set_input_state(**INPUT[self.previous_action])
+                if tm_simulation_result.done:
+                    self.previous_state = None
+                    self.previous_action = None
+                else:
+                    self.previous_state = state
+                    self.previous_action = self.agent.get_action(self.dqn_trainer.model_network, self.previous_state.distances, self.dqn_trainer.epsilon, self.device)
+                    # print(self.previous_action, flush=True)
+                    iface.set_input_state(**INPUT[self.previous_action])
 
                 data_bus = DataBus(state.car_pos, state.car_ahead_pos, state.detected_points)
                 self.databus_buffer.put(data_bus)
@@ -194,9 +195,9 @@ class Environment(Client):
         # --- get DONE ---
 
         # Restart if too long
-        if _time > 40000:
-            print("Step restarted : Car is too slow")
-            gave_over = True
+        if _time > 30000:
+            print("Step restarted : Car is too slow", flush=True)
+            game_over = True
             reward -= 10
 
         # Restart if the car is stopped
@@ -204,10 +205,11 @@ class Environment(Client):
             self.inactivity += 1
         else:
             self.inactivity = 0
+        # print(self.inactivity, flush=True)
 
-        if self.inactivity > 300:
-            print("Step restarted : Car is stopped")
-            gave_over = True
+        if self.inactivity > 20:
+            print("Step restarted : Car is stopped", flush=True)
+            game_over = True
             reward -= 10
 
         # Restart if the track is finished

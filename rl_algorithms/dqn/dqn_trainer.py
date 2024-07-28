@@ -25,7 +25,7 @@ class DQNTrainer:
         self.experience_buffer = experience_buffer
 
         # Training states
-        self.epsilon = 0
+        self.epsilon = EPSILON_START
         self.epoch = 0
         self.step = 0
         self.loss = 0
@@ -68,9 +68,9 @@ class DQNTrainer:
         actions = torch.tensor(actions, dtype=torch.int64, device=self.device)
         rewards = torch.tensor(rewards, dtype=torch.int, device=self.device)
         next_states = torch.tensor(next_states, dtype=torch.float, device=self.device)
-        dones = torch.ByteTensor(dones, device=self.device)
+        dones = torch.tensor(dones, dtype=torch.bool, device=self.device)
 
-        state_action_values = self.model_network(states).gather(1, torch.argmax(actions, dim=1).unsqueeze(1)).squeeze(1)
+        state_action_values = self.model_network(states).gather(1, actions.unsqueeze(1)).squeeze(1)
         next_state_values = self.model_target_network(next_states).max(1)[0]
         next_state_values[dones] = 0.0
         next_state_values = next_state_values.detach()

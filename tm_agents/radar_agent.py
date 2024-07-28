@@ -38,10 +38,12 @@ class RadarAgent:
         # Espilon-Greedy: tradeoff exploration / exploitation
         if np.random.random() < epsilon:
             move = np.random.randint(0, 5)
+            # print("Random move: ", move, flush=True)
         else:
             state0 = torch.tensor(state, dtype=torch.float, device=device)
             prediction = model_network(state0)
             move = torch.argmax(prediction).item()
+            # print("Predicted move: ", move, flush=True)
 
         return move
 
