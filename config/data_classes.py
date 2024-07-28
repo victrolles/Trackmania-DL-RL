@@ -65,3 +65,4 @@ class DataBus:
     total_time: float
     distance_travelled: float
     fps_env: float
+    exp_buffer_size: int

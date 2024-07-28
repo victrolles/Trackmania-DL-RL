@@ -13,11 +13,17 @@ class ExperienceBuffer:
 
     def sample(self, batch_size):
         indices = np.random.choice(len(self.buffer), batch_size, replace=False)
-        states = [self.buffer[idx].state for idx in indices]
-        actions = [self.buffer[idx].action for idx in indices]
-        rewards = [self.buffer[idx].reward for idx in indices]
-        dones = [self.buffer[idx].done for idx in indices]
-        next_states = [self.buffer[idx].next_state for idx in indices]
+        sampled_experiences = [self.buffer[idx] for idx in indices]
+        
+        # Remove the sampled experiences from the buffer
+        for idx in sorted(indices, reverse=True):
+            del self.buffer[idx]
+
+        states = [exp.state for exp in sampled_experiences]
+        actions = [exp.action for exp in sampled_experiences]
+        rewards = [exp.reward for exp in sampled_experiences]
+        dones = [exp.done for exp in sampled_experiences]
+        next_states = [exp.next_state for exp in sampled_experiences]
         
         return (np.array(states), 
                 np.array(actions), 

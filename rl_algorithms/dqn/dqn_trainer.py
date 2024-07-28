@@ -40,7 +40,7 @@ class DQNTrainer:
         self.criterion = nn.MSELoss()
 
     def train_model(self) -> TrainingStats:
-        
+
         start_training_time = time.time()
         
         self.epoch += 1

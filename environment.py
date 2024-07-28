@@ -60,42 +60,6 @@ class Environment(Client):
         
         self.agent = RadarAgent(self.list_points_left_border, self.list_points_right_border)
         self.dqn_trainer = DQNTrainer(self.experience_buffer, self.device)
-
-        # ax.set(xlabel='x', ylabel='y')
-        # ax.legend()
-        # plt.show()
-
-        # # Setup screen and game
-        # def set_window_pos(window_name, x, y, width, height):
-        #     hwnd = win32gui.FindWindow(None, window_name)
-        #     if hwnd:
-        #         # print(win32gui.GetWindowRect(hwnd))
-        #         win32gui.SetWindowPos(hwnd, win32con.HWND_TOP, x, y, width, height, 0)
-
-        # # Example usage
-        # name = "TrackMania Nations Forever (TMInterface 1.4.3)"
-        # set_window_pos(name, -6, 0, 256, 256)  # Replace 'Google Chrome' with the exact window title
-
-        # ## To sort out
-        # track_name = str('snake_map_training')
-        # self.device = 'cuda' if torch.cuda.is_available() else 'cpu'
-        # self.game_experience = []
-
-        # self.policy_model = PolicyModel(12, 5).to(self.device) #400, 512, 3
-        # self.q1_model = QModel(12, 5).to(self.device)
-        # self.q2_model = QModel(12, 5).to(self.device)
-
-        # self.agent = Agent(track_name)
-        # self.dqn_trainer = SACTrainer(self.policy_model, self.q1_model, self.q2_model, self.device, self.is_model_saved, self.end_processes, track_name, self.episode, self.policy_loss, self.q1_loss, self.q2_loss, self.training_time)
-        # self.dqn_trainer = DQNTrainer(self.game_experience, self.epsilon, self.epoch, self.loss, self.device, self.is_model_saved, self.end_processes, track_name, self.training_time)
-        # self.inactivity = 0
-        # self.is_track_finished = bool(False)
-        # self.current_game_speed = 1.0
-        
-        # self.track_name = track_name
-        # self.list_point_middle_line = get_list_point_middle_line(track_name)
-        # self.road_sections = get_road_sections(track_name)
-
         
 
     # Connection to Trackmania
@@ -170,7 +134,8 @@ class Environment(Client):
                                                     None,
                                                     time.time() - self.start_total_time,
                                                     0,
-                                                    self.iter/(time.time() - self.start_total_time)))
+                                                    self.iter/(time.time() - self.start_total_time),
+                                                    len(self.experience_buffer)))
 
                 # ===== Update the model if game over =====
                 if tm_simulation_result.done and len(self.experience_buffer) > 0:
@@ -183,7 +148,8 @@ class Environment(Client):
                                                         self.training_stats,
                                                         time.time() - self.start_total_time,
                                                         self.previous_dist_to_finish_line,
-                                                        self.iter/(time.time() - self.start_total_time)))
+                                                        self.iter/(time.time() - self.start_total_time),
+                                                        len(self.experience_buffer)))
                     
                     iface.give_up()
 

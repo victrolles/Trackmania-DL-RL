@@ -34,16 +34,6 @@ class Graphic:
 
         self.init_canvas()
 
-        # folder = 'snake_map_training'
-        
-        # self.fig, self.ax = plt.subplots(figsize=(4, 6))
-        # self.canvas = FigureCanvasTkAgg(self.fig, master=self.root)
-        # self.canvas.get_tk_widget().grid(column=0, row=11, columnspan=4, rowspan=6, sticky=tk.S, padx=5, pady=5)
-        # self.root.configure(bg='#0000CC')
-        # self.root.update()
-
-        
-
         ## Main loop
         self.update_display()
 
@@ -53,7 +43,7 @@ class Graphic:
 
         while not self.end_processes.value:
 
-            time.sleep(0.1)
+            time.sleep(0.05)
             self.iter += 1
             
             if not self.databus_buffer.empty():
@@ -80,6 +70,9 @@ class Graphic:
                 # FPS
                 self.update_fps(int(databus.fps_env), int(self.iter / (time.time() - self.start_time)))
 
+                # Buffers
+                self.update_buffers(databus.exp_buffer_size, self.databus_buffer.qsize())
+
                 # Update display
 
 
@@ -102,8 +95,11 @@ class Graphic:
         self.label_epoch = tk.Label(self.root, text=f"Epoch: {0}", font=("Arial", 20))
         self.label_step = tk.Label(self.root, text=f"Step: {0}", font=("Arial", 20))
 
-        self.label_total_time = tk.Label(self.root, text=f" Training Time: {0:.3f}", font=("Arial", 20))
-        self.label_training_time = tk.Label(self.root, text=f"Total Time: {0:.3f}", font=("Arial", 20))
+        self.label_total_time = tk.Label(self.root, text=f" Total Time: {0:.3f}", font=("Arial", 20))
+        self.label_training_time = tk.Label(self.root, text=f"Training Time: {0:.3f}", font=("Arial", 20))
+
+        self.label_size_exp_buffer = tk.Label(self.root, text=f"Exp buffer size: {0}", font=("Arial", 20))
+        self.label_size_bus_buffer = tk.Label(self.root, text=f"Bus buffer size: {0}", font=("Arial", 20))
 
         self.label_epsilon = tk.Label(self.root, text=f"Epsilon: {0:.3f}", font=("Arial", 20))
 
@@ -134,6 +130,9 @@ class Graphic:
         self.label_training_time.place(x=750, y=45)
         self.label_epsilon.place(x=750, y=85)
 
+        self.label_size_exp_buffer.place(x=450, y=300)
+        self.label_size_bus_buffer.place(x=450, y=340)
+
         self.label_button_speed.place(x=450, y=165)
         self.label_button_training.place(x=450, y=205)
         self.label_button_save_model.place(x=450, y=245)
@@ -146,6 +145,8 @@ class Graphic:
         self.button_game_speed.place(x=1050, y=165)
         self.entry_game_speed.place(x=950, y=165)
         self.button_exit.place(x=1050, y=245)
+
+
 
     def switch_mode(self):
         self.is_training.value = not self.is_training.value
@@ -172,10 +173,10 @@ class Graphic:
         self.root.quit()
 
     def update_total_time(self, total_time: float):
-        self.label_total_time.config(text=f"Total Time: {total_time:.3f}")
+        self.label_total_time.config(text=f"Total Time: {delta_time_to_str(total_time)}")
 
     def update_training_stats(self, training_stats: TrainingStats):
-        self.label_training_time.config(text=f"Training Time: {training_stats.training_time:.3f}")
+        self.label_training_time.config(text=f"Training Time: {delta_time_to_str(training_stats.training_time)}")
         self.label_epoch.config(text=f"Epoch: {training_stats.epoch}")
         self.label_step.config(text=f"Step: {training_stats.step}")
         self.label_epsilon.config(text=f"Epsilon: {training_stats.epsilon:.3f}")
@@ -183,6 +184,17 @@ class Graphic:
     def update_fps(self, fps_env: float, fps_graphic: float):
         self.label_fps_env.config(text=f"fps env: {fps_env}")
         self.label_fps_graphic.config(text=f"fps graph: {fps_graphic}")
+
+    def update_buffers(self, exp_buffer_size: int, bus_buffer_size: int):
+        self.label_size_exp_buffer.config(text=f"Exp buffer size: {exp_buffer_size}")
+        self.label_size_bus_buffer.config(text=f"Bus buffer size: {bus_buffer_size}")
+
+def delta_time_to_str(delta_time: float):
+    minute = int(delta_time / 60)
+    seconde = int(delta_time % 60)
+    string = f"{minute}min {seconde}s"
+    return string
+
 
 class PlotCurves:
     def __init__(self, root):
