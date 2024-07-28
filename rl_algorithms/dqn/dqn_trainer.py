@@ -3,7 +3,7 @@ import torch.nn as nn
 import torch.optim as optim
 
 
-from config import LR, GAMMA, BATCH_SIZE, SYNC_MODELS_RATE, SAVE_MODELS_RATE, EPSILON_START, EPSILON_END, EPSILON_DECAY, LOAD_SAVED_MODEL
+from config.globals import LR, GAMMA, BATCH_SIZE, SYNC_MODELS_RATE, SAVE_MODELS_RATE, EPSILON_START, EPSILON_END, EPSILON_DECAY, LOAD_SAVED_MODEL
 from rl_algorithms.dqn.dqn_model import DQNModel
 
 class DQNTrainer:
@@ -63,10 +63,10 @@ class DQNTrainer:
                 break
 
     def update_model(self):
+
         if len(self.experience_buffer) < BATCH_SIZE:
             return
-
-        states, actions, rewards, dones, next_states = self.experience_buffer.sample()
+        states, actions, rewards, dones, next_states = self.experience_buffer
 
         states = torch.tensor(states, dtype=torch.float, device=self.device)
         actions = torch.tensor(actions, dtype=torch.int64, device=self.device)

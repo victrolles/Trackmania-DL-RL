@@ -1,0 +1,303 @@
+# import sys
+# from collections import namedtuple
+# from typing import Literal
+# from time import sleep
+
+# from tminterface.interface import TMInterface
+# from tminterface.client import Client, run_client
+# import torch
+# import win32gui
+# import win32con
+# import cv2
+# from PIL import ImageGrab
+# import numpy as np
+
+# from agent import Agent
+# from rl_algorithms.dqn.dqn_trainer import DQNTrainer
+# from utils import get_distance_to_finish_line, get_list_point_middle_line, get_road_sections
+
+# # Input:
+# INPUT = [
+#             {  # 0 Up
+#                 "left": False,
+#                 "right": False,
+#                 "accelerate": True,
+#                 "brake": False,
+#             },
+#             {  # 1 Left
+#                 "left": True,
+#                 "right": False,
+#                 "accelerate": False,
+#                 "brake": False,
+#             },
+#             {  # 2 Right
+#                 "left": False,
+#                 "right": True,
+#                 "accelerate": False,
+#                 "brake": False,
+#             },
+#             {  # 3 Up and Left
+#                 "left": True,
+#                 "right": False,
+#                 "accelerate": True,
+#                 "brake": False,
+#             },
+#             {  # 4 Up and Right
+#                 "left": False,
+#                 "right": True,
+#                 "accelerate": True,
+#                 "brake": False,
+#             }
+#         ]
+
+# Experience = namedtuple('Experience', ('state', 'action', 'reward', 'done', 'next_state'))
+
+# class Environment(Client):
+#     def __init__(self, epsilon, epoch, loss, best_dist, step, reward, training_time, speed, car_action, game_time, current_dist, is_training_mode, is_model_saved, game_speed, end_processes) -> None:
+#         super(Environment, self).__init__()
+
+#         ## Shared memory
+
+#         # Training state
+#         self.epsilon = epsilon
+#         self.epoch = epoch
+#         self.loss = loss
+#         self.best_dist = best_dist
+#         self.step = step
+#         self.reward = reward
+#         self.training_time = training_time
+
+#         # Car state
+#         self.speed = speed
+#         self.car_action = car_action
+#         self.game_time = game_time
+#         self.current_dist = current_dist
+
+#         # Actions
+#         self.is_training_mode = is_training_mode
+#         self.is_model_saved = is_model_saved
+#         self.game_speed = game_speed
+#         self.end_processes = end_processes
+
+#         # Setup screen and game
+#         def set_window_pos(window_name, x, y, width, height):
+#             hwnd = win32gui.FindWindow(None, window_name)
+#             if hwnd:
+#                 # print(win32gui.GetWindowRect(hwnd))
+#                 win32gui.SetWindowPos(hwnd, win32con.HWND_TOP, x, y, width, height, 0)
+
+#         # Example usage
+#         name = "TrackMania Nations Forever (TMInterface 1.4.3)"
+#         set_window_pos(name, -6, 0, 256, 256)  # Replace 'Google Chrome' with the exact window title
+
+#         ## To sort out
+#         track_name = str('snake_map_training')
+#         self.device = 'cuda' if torch.cuda.is_available() else 'cpu'
+#         self.game_experience = []
+
+#         # self.policy_model = PolicyModel(12, 5).to(self.device) #400, 512, 3
+#         # self.q1_model = QModel(12, 5).to(self.device)
+#         # self.q2_model = QModel(12, 5).to(self.device)
+
+#         self.agent = Agent(track_name)
+#         # self.dqn_trainer = SACTrainer(self.policy_model, self.q1_model, self.q2_model, self.device, self.is_model_saved, self.end_processes, track_name, self.episode, self.policy_loss, self.q1_loss, self.q2_loss, self.training_time)
+#         self.dqn_trainer = DQNTrainer(self.game_experience, self.epsilon, self.epoch, self.loss, self.device, self.is_model_saved, self.end_processes, track_name, self.training_time)
+#         self.inactivity = 0
+#         self.is_track_finished = bool(False)
+#         self.current_game_speed = 1.0
+        
+#         self.track_name = track_name
+#         self.list_point_middle_line = get_list_point_middle_line(track_name)
+#         self.road_sections = get_road_sections(track_name)
+
+#         self.previous_dist_to_finish_line = 1103.422# 917.422
+#         self.previous_state = None
+#         self.previous_action = None
+
+#     # Connection to Trackmania
+#     def on_registered(self, iface: TMInterface) -> None:
+#         print(f'Registered to {iface.server_name}', flush=True)
+#         iface.set_timeout(20_000)
+#         iface.give_up()
+
+#     # Function to detect if the car crossed the finish line
+#     def on_checkpoint_count_changed(self, iface: TMInterface, current: int, target: int):
+#         if current == target:
+#             iface.prevent_simulation_finish()
+#             self.is_track_finished = True
+#             iface.give_up()
+
+#     def on_run_step(self, iface: TMInterface, _time: int):
+
+#         if _time >= 0:
+
+#             # ===== Stop the process if needed =====
+#             if self.end_processes.value:
+#                 # Close the connection to Trackmania
+#                 iface.close()
+#                 # Save the model
+#                 self.dqn_trainer.save_model()
+#                 print("Environment process correctly stopped")
+#                 return
+            
+#             # ===== Save the model if needed =====
+#             if self.is_model_saved.value:
+#                 self.dqn_trainer.save_model()
+#                 print("Models correctly saved")
+#                 self.is_model_saved.value = False
+            
+#             # ===== Switch between Training and Testing Mode =====
+#             if not self.is_training_mode.value:
+#                 return
+            
+#             # ===== Change Training Speed =====
+#             if self.current_game_speed != self.game_speed.value:
+#                 self.current_game_speed = self.game_speed.value
+#                 iface.set_speed(self.game_speed.value)
+            
+#             # ===== Training =====
+
+#             # --- Get REWARD ---
+
+#             # Get reward from speed
+#             iface_state = iface.get_simulation_state()
+#             reward = 0
+
+#             speed = iface_state.display_speed
+#             reward += int(speed)
+
+#             # Get reward from getting closer to finish line
+#             dist_to_finish_line = get_distance_to_finish_line(iface_state.position,
+#                 self.list_point_middle_line,
+#                 self.road_sections
+#            )
+#             if dist_to_finish_line < self.previous_dist_to_finish_line:
+#                 reward += 20 # 70
+#             else:
+#                 reward -= 20 #70
+#             self.previous_dist_to_finish_line = dist_to_finish_line
+
+#             # Get reward if no lateral contact
+#             if iface_state.scene_mobil.has_any_lateral_contact:
+#                 reward -= 70 #100
+#             else:
+#                 reward += 70 #30
+
+#             # print(f"Reward : {reward}")
+
+#             # --- get DONE ---
+
+#             # Restart if too long
+#             gave_over = False
+#             if _time > 40000:
+#                 print("Step restarted : Car is too slow")
+#                 gave_over = True
+#                 reward -= 1
+
+#             # Restart if the car is stopped
+#             if speed < 5:
+#                 self.inactivity += 1
+#             else:
+#                 self.inactivity = 0
+
+#             if self.inactivity > 300:
+
+#                 print("Step restarted : Car is stopped")
+#                 gave_over = True
+#                 reward -= 1000
+
+#             # Restart if the track is finished
+#             if self.is_track_finished:
+#                 self.is_track_finished = False
+
+#                 print("Step restarted : Track is finished")
+#                 gave_over = True
+#                 reward += 1000
+            
+#             # --- Get current STATE  ---
+
+#             window_name = 'window'
+
+#             # Grab BGR image from the screen
+#             # delay = 0.1
+#             # sleep(delay)
+
+#             # screen = np.array(ImageGrab.grab(bbox=(0, 60, 256, 316)))
+#             # screen = np.array(ImageGrab.grab(bbox=(0, 0, 32, 32)))
+
+#             # Convert the image to grayscale
+#             # gray_image = cv2.cvtColor(screen, cv2.COLOR_BGR2GRAY)
+#             gray_image = np.zeros((256, 256), dtype=np.uint8)
+
+#             # Display the image
+#             # cv2.imshow(window_name, gray_image)
+#             # cv2.moveWindow(window_name, -17, 372)
+#             # cv2.resizeWindow(window_name, 776, 411)
+
+#             pixel_matrix = np.array(gray_image)
+
+#             if cv2.waitKey(25) & 0xFF == ord('q'):
+#                 cv2.destroyAllWindows()
+
+#             # Normalize pixel values to the range [0, 1]
+#             normalized_pixel_matrix = pixel_matrix / 255.0
+
+#             # Example: Reshape the matrix if needed (for instance, adding a batch dimension)
+#             input_matrix = normalized_pixel_matrix.reshape(1, *normalized_pixel_matrix.shape)
+#             current_state = input_matrix
+
+#             # print("Shape of input matrix:", input_matrix.shape)
+
+#             # if gave_over:
+#             #     current_state = State(0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0)
+#             # else:
+#             #     current_state = self.agent.get_state(iface_state, _time)
+#             #     reward += int((0.5 - current_state.distance_to_centerline) * 100)
+#             #     # print(f"Reward : {reward}")
+            
+#             # ===== Store the experience in the buffer =====
+#             if self.previous_state is not None and self.previous_action is not None:
+#                 experience = Experience(self.previous_state, self.previous_action, reward, gave_over, current_state)
+#                 print(len(experience))
+#                 self.game_experience.append(experience)
+
+#             # ===== Get the current state of the car =====
+#             if gave_over:
+#                 self.previous_state = None
+#                 self.previous_action = None
+#                 self.car_action.value = -1
+#             else:
+#                 self.previous_state = current_state
+#                 self.previous_action = self.agent.get_action(self.dqn_trainer.model_network, self.previous_state, self.epsilon, self.device)
+#                 iface.set_input_state(**INPUT[self.previous_action])
+#                 self.car_action.value = self.previous_action
+
+#             # ===== Update the shared memory =====
+#             self.step.value += 1
+#             self.reward.value += reward
+
+#             self.speed.value = iface_state.display_speed
+#             self.game_time.value = _time
+#             self.current_dist.value = 1103.422 - dist_to_finish_line #917.422
+#             self.best_dist.value = max(self.best_dist.value, self.current_dist.value)
+
+#             # ===== Update the model if game over =====
+#             if gave_over and len(self.game_experience) > 0:
+#                 self.epoch.value += 1
+#                 self.step.value = 0
+#                 self.reward.value = 0
+#                 self.previous_dist_to_finish_line = 1103.422 #917.422
+#                 self.inactivity = 0
+
+#                 iface.give_up()
+
+#                 self.dqn_trainer.train_model()
+#                 self.game_experience = []
+                
+#                 iface.give_up()
+            
+# def start_env(epsilon, epoch, loss, best_dist, step, reward, training_time, speed, car_action, game_time, current_dist, is_training_mode, is_model_saved, game_speed, end_processes):
+#     print("Environment process started")
+#     server_name = f'TMInterface{sys.argv[1]}' if len(sys.argv) > 1 else 'TMInterface0'
+#     print(f'Connecting to {server_name}...')
+#     run_client(Environment(epsilon, epoch, loss, best_dist, step, reward, training_time, speed, car_action, game_time, current_dist, is_training_mode, is_model_saved, game_speed, end_processes))

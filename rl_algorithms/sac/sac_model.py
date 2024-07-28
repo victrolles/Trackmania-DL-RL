@@ -2,7 +2,7 @@ from torch import nn
 import torch
 import torch.nn.functional as F
 
-from config import HIDDEN_DIM
+from config.globals import HIDDEN_DIM
 
 # The policy model will output actions given states.
 # For continuous action spaces, it often outputs parameters of a probability distribution (e.g., a Gaussian distribution)

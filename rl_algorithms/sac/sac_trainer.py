@@ -5,7 +5,7 @@ import torch.optim as optim
 import torch.nn.functional as F
 from torch import Tensor
 
-from config import LR, GAMMA, ALPHA, LOAD_SAVED_MODEL, GAMMA_REWARD, N_STEP
+from config.globals import LR, GAMMA, ALPHA, LOAD_SAVED_MODEL, GAMMA_REWARD, N_STEP
 from rl_algorithms.sac.sac_model import PolicyModel, QModel
 
 class SACTrainer:
