@@ -2,116 +2,13 @@ import math
 import json
 from collections import namedtuple
 
-import numpy as np
-import pandas as pd
+
 
 from config.data_classes import Point2D
 
-# Return the intersection point between a line and a segment
-def intersection_line_segment(line_p1: Point2D, line_p2: Point2D, seg_p1: Point2D, seg_p2: Point2D) -> Point2D:
 
-    denom = (seg_p2.y - seg_p1.y) * (line_p2.x - line_p1.x) - (seg_p2.x - seg_p1.x) * (line_p2.y - line_p1.y)
 
-    if denom == 0:
-        return Point2D(0.0, 0.0)  # Les droites sont parallèles
 
-    ua = ((seg_p2.x - seg_p1.x) * (line_p1.y - seg_p1.y) - (seg_p2.y - seg_p1.y) * (line_p1.x - seg_p1.x)) / denom
-    ub = ((line_p2.x - line_p1.x) * (line_p1.y - seg_p1.y) - (line_p2.y - line_p1.y) * (line_p1.x - seg_p1.x)) / denom
-
-    if ua >= 0 and 0 <= ub <= 1:
-        # Calcul du point d'intersection
-        x = line_p1.x + ua * (line_p2.x - line_p1.x)
-        y = line_p1.y + ua * (line_p2.y - line_p1.y)
-        return Point2D(x, y)
-    else:
-        return Point2D(0.0, 0.0)
-
-# Return the closest intersection point between a line and the borders of the track 
-def find_closest_intersection(line_p1: Point2D, line_p2: Point2D, list_points_border) -> Point2D:
-
-    min_dist = float('inf')
-    closest_point = None
-
-    for i in range(len(list_points_border) - 1):
-        border_p1 = list_points_border[i]
-        border_p1_ = Point2D(border_p1[0], border_p1[1])
-        border_p2 = list_points_border[i + 1]
-        border_p2_ = Point2D(border_p2[0], border_p2[1])
-        point = intersection_line_segment(line_p1, line_p2, border_p1_, border_p2_)
-        if point:
-            dist = np.linalg.norm(point.to_array() - line_p1.to_array())
-            if dist < min_dist:
-                min_dist = dist
-                closest_point = point
-    
-    return closest_point
-
-def closest_intersection(car_pos: Point2D, car_pos_ahead: Point2D, list_points_left_border, list_points_right_border):
-    """
-    Retourne le point d'intersection le plus proche entre la droite passant par la voiture
-    et les bords de la route.
-    """
-    line_p1 = car_pos
-    line_p2 = car_pos_ahead
-
-    # Trouver l'intersection la plus proche pour les deux bordures
-    closest_left = find_closest_intersection(line_p1, line_p2, list_points_left_border)
-    closest_right = find_closest_intersection(line_p1, line_p2, list_points_right_border)
-
-    # Comparer les deux intersections trouvées et retourner la plus proche
-    if closest_left and closest_right:
-        dist_left = np.linalg.norm(closest_left.to_array() - line_p1.to_array())
-        dist_right = np.linalg.norm(closest_right.to_array() - line_p1.to_array())
-        if dist_left < dist_right:
-            return closest_left
-        else:
-            return closest_right
-    elif closest_left:
-        return closest_left
-    elif closest_right:
-        return closest_right
-    else:
-        return None
-
-def point_ahead(car_pos: Point2D, theta, extra_rotation = 0) -> Point2D:
-    """
-    Retourne un point 1 unité devant la voiture donnée sa position (x, y) et son angle de rotation theta.
-    
-    :param x: Position x de la voiture
-    :param y: Position y de la voiture
-    :param theta: Angle de rotation de la voiture en radians (entre -pi et pi)
-    :return: Tuple (x_new, y_new) représentant le point 1 unité devant la voiture
-    """
-    # Ajuster l'angle pour pointer devant la voiture
-    theta_adjusted = - theta + np.pi / 2 + extra_rotation
-
-    # Calcul du déplacement en x et y
-    dx = math.cos(theta_adjusted)
-    dy = math.sin(theta_adjusted)
-    
-    # Calcul de la nouvelle position
-    x_new = car_pos.x + 2*dx
-    y_new = car_pos.y + 2*dy
-    
-    return Point2D(x_new, y_new)
-
-# # Get the list of points on the middle line of the track
-# def get_list_point_middle_line(track_name: str):
-#     # Read the csv file that contains the points on the middle line of the track
-#     path_to_csv = f'maps/{track_name}/road_middle.csv'
-#     df_points_on_middle_line = pd.read_csv(path_to_csv)
-#     return list(zip(df_points_on_middle_line.x_values, df_points_on_middle_line.y_values))
-
-# def get_road_sections(track_name: str):
-#     # Read the json file that contains the road sections of the track
-#     ## Coordinates of turns, straight lines, etc.
-#     ## Direction of turns, straight lines, etc.
-#     ## list of points on the middle line of the track related to each road section
-#     path_to_json = f'maps/{track_name}/dict.json'
-#     with open(path_to_json, "r") as json_file:
-#         file_data  = json.load(json_file)
-
-#     return file_data["road_sections"]
 
 # # Get the angle / orientation between two points
 # def get_angle_from_two_points(point, previous_point):

@@ -6,21 +6,16 @@ import pandas as pd
 from config.data_classes import DataBus, Point2D
 
 class Graphic:
-    def __init__(self, databus_buffer: DataBus) -> None:
+    def __init__(self, databus_buffer: DataBus, end_processes) -> None:
 
         print("Graphic process started", flush=True)
 
         ## Shared memory
         self.databus_buffer = databus_buffer
-        self.databus = DataBus(Point2D(0, 0), Point2D(0, 0), [Point2D(0, 0)])
+        self.end_processes = end_processes
 
-        # Training state
-        # self.x = x
-        # self.y = y
-        # self.x2 = x2
-        # self.y2 = y2
-        # self.x3 = x3
-        # self.y3 = y3
+        # Data bus
+        self.databus = DataBus(Point2D(0, 0), Point2D(0, 0), [])
 
         # Test to plot road and car
         self.iteration = 0
@@ -31,8 +26,8 @@ class Graphic:
         self.root.geometry(str(850) + "x" + str(850))
 
         folder = 'snake_map_training'
-        self.left_side_road_coordinates = pd.read_csv(f'maps/{folder}/road_left.csv')
-        self.right_side_road_coordinates = pd.read_csv(f'maps/{folder}/road_right.csv')
+        self.left_side_road_coordinates = pd.read_csv(f'extras/maps/{folder}/road_left.csv')
+        self.right_side_road_coordinates = pd.read_csv(f'extras/maps/{folder}/road_right.csv')
         self.fig, self.ax = plt.subplots(figsize=(4, 6))
         self.canvas = FigureCanvasTkAgg(self.fig, master=self.root)
         self.canvas.get_tk_widget().grid(column=0, row=11, columnspan=4, rowspan=6, sticky=tk.S, padx=5, pady=5)
@@ -47,7 +42,7 @@ class Graphic:
     def update_display(self):
         iter = 0
 
-        while True:
+        while not self.end_processes.value:
 
             if iter % 40 == 0:
 
@@ -70,8 +65,8 @@ class Graphic:
                 self.ax.plot(self.databus.car_ahead_pos.x, self.databus.car_ahead_pos.y, 'ro', label='car2')
 
                 # Sensors
-                for sensor in self.databus.car_sensors:
-                    self.ax.plot(sensor.x, sensor.y, 'go', label='sensor')
+                for detected_point in self.databus.detected_points:
+                    self.ax.plot(detected_point.pos.x, detected_point.pos.y, 'go', label='sensor')
 
                 # ---- Draw ----
                 self.canvas.draw()

@@ -9,7 +9,7 @@ import torch
 # from torch import argmax
 
 # from rl_algorithms.sac.sac_model import PolicyModel
-from utils import get_list_point_middle_line, get_road_sections, get_positional_informations
+from extras.tests.utils import get_list_point_middle_line, get_road_sections, get_positional_informations
 
 
 

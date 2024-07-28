@@ -1,4 +1,4 @@
-from utils import Coord2D, intersection_line_segment
+from extras.tests.utils import Coord2D, intersection_line_segment
 
 if __name__ == '__main__':
     # Test the intersection function

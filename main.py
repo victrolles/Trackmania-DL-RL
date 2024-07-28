@@ -27,23 +27,16 @@ def main():
     # is_training_mode = mp.Value('b', True)
     # is_model_saved = mp.Value('b', False)
     # game_speed = mp.Value('d', 1.0)
-    # end_processes = mp.Value('b', False)
+    end_processes = mp.Value('b', False)
     databus_buffer = mp.Queue(maxsize=BUFFER_SIZE)
-    # x = mp.Value('d', 0.0)
-    # y = mp.Value('d', 0.0)
-    # x2 = mp.Value('d', 0.0)
-    # y2 = mp.Value('d', 0.0)
-    # x3 = mp.Value('d', 0.0)
-    # y3 = mp.Value('d', 0.0)
     # test model
     # load model
     # pause_rendering
 
     ## Processes
 
-    p_env_train = mp.Process(target = start_env, args = (databus_buffer,))
-    p_graphic = mp.Process(target = Graphic, args=(databus_buffer,))
-
+    p_env_train = mp.Process(target = start_env, args = (databus_buffer, end_processes))
+    p_graphic = mp.Process(target = Graphic, args=(databus_buffer, end_processes))
     p_env_train.start()
     p_graphic.start()
 

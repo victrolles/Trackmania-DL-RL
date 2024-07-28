@@ -2,71 +2,67 @@ import torch
 import torch.nn as nn
 import torch.optim as optim
 
-
-from config.globals import LR, GAMMA, BATCH_SIZE, SYNC_MODELS_RATE, SAVE_MODELS_RATE, EPSILON_START, EPSILON_END, EPSILON_DECAY, LOAD_SAVED_MODEL
+from config.globals import LR, GAMMA, BATCH_SIZE, SYNC_TARGET_RATE, SAVE_MODELS_RATE, EPSILON_START, EPSILON_END, EPSILON_DECAY, LOAD_SAVED_MODEL, TRACK_NAME
 from rl_algorithms.dqn.dqn_model import DQNModel
+from rl_algorithms.experience_buffer import ExperienceBuffer
 
 class DQNTrainer:
 
-    def __init__(self, experience_buffer, epsilon, epoch, loss, device, is_model_saved, end_processes, track_name, training_time):
+    def __init__(self, experience_buffer: ExperienceBuffer, device):
 
-        # Track name
-        self.track_name = track_name
-        self.device = 'cuda' if torch.cuda.is_available() else 'cpu'
+        # Device
+        self.device = device
+        self.stop_training = False
         
         # Model
-        self.model_network = DQNModel(5, 256).to(self.device) #400, 512, 3
-        self.model_target_network = DQNModel(5, 256).to(self.device) #400, 512, 3
+        self.model_network = DQNModel(5, 256, 5).to(self.device)
+        self.model_target_network = DQNModel(5, 256, 5).to(self.device)
 
         if LOAD_SAVED_MODEL:
             self.load_model()
 
-        # Experience buffer
+        # Experience buffer : shared memory
         self.experience_buffer = experience_buffer
 
-        # Training states : shared memory
-        self.epsilon = epsilon
-        self.epoch = epoch
-        self.loss = loss
-        self.is_model_saved = is_model_saved
-        self.end_processes = end_processes
-        self.training_time = training_time
+        # Training states
+        self.epsilon = 0
+        self.epoch = 0
+        self.step = 0
+        self.loss = 0
+        self.training_time = 0
 
         # Training parameters
         self.optimizer = optim.Adam(self.model_network.parameters(), lr=LR)
         self.criterion = nn.MSELoss()
 
-        # Device
-        self.device = device
-
     def train_model(self):
         
+        self.epoch += 1
+        self.step = 0
+
         while len(self.experience_buffer) > BATCH_SIZE:
 
-            # Update model
+            self.step += 1
+
             self.update_model()
+            
+            self.update_epsilon()
 
-            # Update epsilon and epoch
-            self.epoch.value += 1
-            self.epsilon.value = max(EPSILON_END, EPSILON_START - self.epoch.value * EPSILON_DECAY)
+            self.sync_target_network()
 
-            # Sync models
-            if self.epoch.value % SYNC_MODELS_RATE == 0:
-                self.model_target_network.load_state_dict(self.model_network.state_dict())
-
-            # Save model
-            if self.epoch.value % SAVE_MODELS_RATE == 0 or self.end_processes.value == True:
-                self.save_model()
-
-            # End processes
-            if self.end_processes.value:
+            if self.stop_training:
                 break
 
     def update_model(self):
 
+        self.optimizer.zero_grad()
+
         if len(self.experience_buffer) < BATCH_SIZE:
-            return
-        states, actions, rewards, dones, next_states = self.experience_buffer
+            batch = self.experience_buffer.sample(len(self.experience_buffer))
+        else:
+            batch = self.experience_buffer.sample(BATCH_SIZE)
+        
+        states, actions, rewards, dones, next_states = batch
 
         states = torch.tensor(states, dtype=torch.float, device=self.device)
         actions = torch.tensor(actions, dtype=torch.int64, device=self.device)
@@ -74,39 +70,49 @@ class DQNTrainer:
         next_states = torch.tensor(next_states, dtype=torch.float, device=self.device)
         dones = torch.ByteTensor(dones, device=self.device)
 
-        state_action_values = self.model_network(states).gather(1, actions.unsqueeze(1)).squeeze(1)
-        next_state_values = self.model_target_network(next_states).max(1)[0].detach()
+        state_action_values = self.model_network(states).gather(1, torch.argmax(actions, dim=1).unsqueeze(1)).squeeze(1)
+        next_state_values = self.model_target_network(next_states).max(1)[0]
+        next_state_values[dones] = 0.0
+        next_state_values = next_state_values.detach()
 
         # Compute the expected state action values
         expected_state_action_values = next_state_values * GAMMA + rewards
 
         # Compute the loss
         loss = self.criterion(state_action_values, expected_state_action_values)
-        # print(f'loss: {loss.item()}')
-        self.loss.value = loss.item()
+        self.loss = loss.item()
 
         # Update the model
-        self.optimizer.zero_grad()
         loss.backward()
         self.optimizer.step()
-        # exit()
+
+    def update_epsilon(self):
+        self.epsilon = max(EPSILON_END, EPSILON_START - self.epoch * EPSILON_DECAY)
+
+    def sync_target_network(self):
+        if self.epoch % SYNC_TARGET_RATE == 0:
+            self.model_target_network.load_state_dict(self.model_network.state_dict())
 
     def save_model(self):
-        torch.save({
-            'model_network_state_dict': self.model_network.state_dict(),
-            'model_target_network_state_dict': self.model_target_network.state_dict(),
-            'optimizer_state_dict': self.optimizer.state_dict(),
-            'epoch': self.epoch.value,
-            'trainig_time': self.training_time.value
-        }, f'maps/{self.track_name}/saves/model.pth')
+        if self.epoch % SAVE_MODELS_RATE == 0:
+            torch.save({
+                'model_network_state_dict': self.model_network.state_dict(),
+                'model_target_network_state_dict': self.model_target_network.state_dict(),
+                'optimizer_state_dict': self.optimizer.state_dict(),
+                'epoch': self.epoch,
+                'trainig_time': self.training_time
+            }, f'extras/maps/{TRACK_NAME}/saves/model.pth')
+            print("Models correctly saved")
 
     def load_model(self):
-        checkpoint = torch.load(f'maps/{self.track_name}/saves/model.pth')
+        checkpoint = torch.load(f'extras/maps/{TRACK_NAME}/saves/model.pth')
         self.model_network.load_state_dict(checkpoint['model_network_state_dict'])
         self.model_target_network.load_state_dict(checkpoint['model_target_network_state_dict'])
         self.optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
-        self.epoch.value = checkpoint['epoch']
-        self.training_time.value = checkpoint['trainig_time']
+        self.epoch = checkpoint['epoch']
+        self.training_time = checkpoint['trainig_time']
 
         self.model_network.eval()
         self.model_target_network.eval()
+
+        print("Models correctly loaded")
