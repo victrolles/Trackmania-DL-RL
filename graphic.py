@@ -9,7 +9,15 @@ from config.data_classes import DataBus, Point2D, TrainingStats, RadarState
 from config.globals import TRACK_NAME
 
 class Graphic:
-    def __init__(self, databus_buffer: DataBus, end_processes, tm_speed, is_training, save_model, is_map_render, is_curves_render) -> None:
+    def __init__(self,
+                 databus_buffer: DataBus,
+                 end_processes,
+                 tm_speed,
+                 is_training,
+                 save_model,
+                 is_map_render,
+                 is_curves_render,
+                 is_tm_speed_changed) -> None:
 
         print("Graphic process started", flush=True)
 
@@ -23,6 +31,7 @@ class Graphic:
         self.save_model = save_model
         self.is_map_render = is_map_render
         self.is_curves_render = is_curves_render
+        self.is_tm_speed_changed = is_tm_speed_changed
 
         self.iter = 0
         self.start_time = time.time()
@@ -73,10 +82,11 @@ class Graphic:
                 # Buffers
                 self.update_buffers(databus.exp_buffer_size, self.databus_buffer.qsize())
 
+                # Check buttons
+                self.check_speed()
+                self.check_save_model()
+
                 # Update display
-
-
-                
                 self.root.update()
 
         print("Graphic process correctly stopped", flush=True)
@@ -104,17 +114,18 @@ class Graphic:
         self.label_epsilon = tk.Label(self.root, text=f"Epsilon: {0:.3f}", font=("Arial", 20))
 
         # buttons
-        self.label_button_speed = tk.Label(self.root, text='Game speed : 1.0', font=("Arial", 20))
+        self.label_button_speed = tk.Label(self.root, text='Game speed: 1.0', font=("Arial", 20))
         self.label_button_training = tk.Label(self.root, text="Mode: Training", font=("Arial", 20))
         self.label_button_save_model = tk.Label(self.root, text="Save models", font=("Arial", 20))
-        self.label_button_render_map = tk.Label(self.root, text="On", font=("Arial", 20))
-        self.label_button_render_curves = tk.Label(self.root, text="On", font=("Arial", 20))
+        self.label_button_render_map = tk.Label(self.root, text="Render map:", font=("Arial", 20))
+        self.label_button_render_curves = tk.Label(self.root, text="Render curves:", font=("Arial", 20))
 
         ## buttons:
-        self.button_is_training_mode = tk.Button(self.root, text="Change", command=self.switch_mode, font=("Arial", 20))
-        self.button_is_model_saved = tk.Button(self.root, text="Save models", command=self.action_save_model, font=("Arial", 20))
-        self.button_game_speed = tk.Button(self.root, text="Set", command=self.change_game_speed, font=("Arial", 20))
-        self.button_game_speed = tk.Button(self.root, text="Set", command=self.change_game_speed, font=("Arial", 20))
+        self.button_training = tk.Button(self.root, text="Switch mode", command=self.switch_mode, font=("Arial", 20))
+        self.button_save_model = tk.Button(self.root, text="Save models", command=self.action_save_model, font=("Arial", 20))
+        self.button_speed = tk.Button(self.root, text="Set", command=self.change_game_speed, font=("Arial", 20))
+        self.button_render_map = tk.Button(self.root, text="On", command=self.change_render_map, font=("Arial", 20))
+        self.button_render_curves = tk.Button(self.root, text="On", command=self.change_render_curves, font=("Arial", 20))
         self.button_exit = tk.Button(self.root, text="Exit", command=self.exit, font=("Arial", 20))
 
         ## Entry
@@ -129,48 +140,62 @@ class Graphic:
         self.label_total_time.place(x=750, y=5)
         self.label_training_time.place(x=750, y=45)
         self.label_epsilon.place(x=750, y=85)
+        self.label_size_exp_buffer.place(x=750, y=125)
+        self.label_size_bus_buffer.place(x=750, y=165)
 
-        self.label_size_exp_buffer.place(x=450, y=300)
-        self.label_size_bus_buffer.place(x=450, y=340)
+        self.label_button_training.place(x=450, y=220)
+        self.label_button_save_model.place(x=450, y=260)
+        self.label_button_speed.place(x=450, y=300)
+        self.entry_game_speed.place(x=450, y=340)
 
-        self.label_button_speed.place(x=450, y=165)
-        self.label_button_training.place(x=450, y=205)
-        self.label_button_save_model.place(x=450, y=245)
+        self.button_training.place(x=650, y=210)
+        self.button_save_model.place(x=650, y=250)
+        self.button_speed.place(x=600, y=340)
 
-        self.label_button_render_map.place(x=750, y=165)
-        self.label_button_render_curves.place(x=750, y=205)
+        self.label_button_render_map.place(x=900, y=300)
+        self.label_button_render_curves.place(x=900, y=340)
 
-        self.button_is_training_mode.place(x=650, y=205)
-        self.button_is_model_saved.place(x=650, y=245)
-        self.button_game_speed.place(x=1050, y=165)
-        self.entry_game_speed.place(x=950, y=165)
-        self.button_exit.place(x=1050, y=245)
+        self.button_render_map.place(x=1100, y=290)
+        self.button_render_curves.place(x=1100, y=330)
+        self.button_exit.place(x=1100, y=65)
 
+    # one way buttons
+    def exit(self):
+        self.end_processes.value = True
+        self.root.quit()
+    
+    def change_game_speed(self):
+        self.is_tm_speed_changed.value = True
+        self.tm_speed.value = float(self.entry_game_speed.get())
+        self.entry_game_speed.delete(0, 'end')
+        self.label_button_speed.config(text="Game speed : switching ...")
 
+    def action_save_model(self):
+        self.save_model.value = True
+        self.label_button_save_model.config(text="Saving models ...")
+
+    def check_save_model(self):
+        if not self.save_model.value and self.label_button_save_model.cget("text") == "Saving models ...":
+            self.label_button_save_model.config(text="Save models")
+
+    def check_speed(self):
+        if not self.is_tm_speed_changed.value and self.label_button_speed.cget("text") == "Game speed : switching ...":
+            self.label_button_speed.config(text=f"Game speed: {self.tm_speed.value}")
+
+    # switch mode buttons
+    def change_render_map(self):
+        self.is_map_render.value = not self.is_map_render.value
+        self.button_render_map.config(text="On" if self.is_map_render.value else "Off")
+
+    def change_render_curves(self):
+        self.is_curves_render.value = not self.is_curves_render.value
+        self.button_render_curves.config(text="On" if self.is_curves_render.value else "Off")
 
     def switch_mode(self):
         self.is_training.value = not self.is_training.value
         self.label_button_training.config(text="Mode: Training" if self.is_training.value else "Mode: Testing")
 
-    def action_save_model(self):
-        self.save_model.value = not self.save_model.value
-        self.label_button_save_model.config(text="Save models" if self.save_model.value else "Don't save models")
-
-    def change_render_map(self):
-        self.is_map_render.value = not self.is_map_render.value
-        self.label_button_render_map.config(text="On" if self.is_map_render.value else "Off")
-
-    def change_render_curves(self):
-        self.is_curves_render.value = not self.is_curves_render.value
-        self.label_button_render_curves.config(text="On" if self.is_curves_render.value else "Off")
-
-    def change_game_speed(self):
-        self.entry_game_speed.delete(0, 'end')
-        self.label_button_speed.config(text=f"Game speed : {float(self.entry_game_speed.get())}")
-
-    def exit(self):
-        self.end_processes.value = True
-        self.root.quit()
+    
 
     def update_total_time(self, total_time: float):
         self.label_total_time.config(text=f"Total Time: {delta_time_to_str(total_time)}")
@@ -273,7 +298,10 @@ class PlotMap:
 
         # Sensors
         for detected_point in radar_state.detected_points:
-            self.map.plot(detected_point.pos.x, detected_point.pos.y, 'go', label='sensor')
+            print(detected_point.dist, flush=True)
+            color = plt.cm.RdYlGn(detected_point.dist)
+            print(color, flush=True)
+            self.map.plot(detected_point.pos.x, detected_point.pos.y, 'o', color=color, label='sensor')
 
         # ---- Draw ----
         self.canvas.draw()

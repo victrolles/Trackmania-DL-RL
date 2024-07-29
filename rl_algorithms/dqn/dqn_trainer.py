@@ -19,8 +19,8 @@ class DQNTrainer:
         self.stop_training = False
         
         # Model
-        self.model_network = DQNModel(5, 256, 5).to(self.device)
-        self.model_target_network = DQNModel(5, 256, 5).to(self.device)
+        self.model_network = DQNModel(7, 512, 5).to(self.device)
+        self.model_target_network = DQNModel(7, 512, 5).to(self.device)
 
         if LOAD_SAVED_MODEL:
             self.load_model()

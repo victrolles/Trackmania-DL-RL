@@ -21,13 +21,13 @@ class RadarAgent:
         detected_points = [detected_point]
         distances = [detected_point.dist]
 
-        for i in range(1, 3):
-            car_pos_ahead1 = point_ahead(car_pos, iface_state.yaw_pitch_roll[0], np.pi/6*i)
+        for i in range(1, 4):
+            car_pos_ahead1 = point_ahead(car_pos, iface_state.yaw_pitch_roll[0], np.pi/8*i)
             detected_point = closest_intersection(car_pos, car_pos_ahead1, self.list_points_left_border, self.list_points_right_border)
             detected_points.append(detected_point)
             distances.append(detected_point.dist)
 
-            car_pos_ahead2 = point_ahead(car_pos, iface_state.yaw_pitch_roll[0], -np.pi/6*i)
+            car_pos_ahead2 = point_ahead(car_pos, iface_state.yaw_pitch_roll[0], -np.pi/8*i)
             detected_point = closest_intersection(car_pos, car_pos_ahead2, self.list_points_left_border, self.list_points_right_border)
             detected_points.append(detected_point)
             distances.append(detected_point.dist)

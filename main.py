@@ -12,15 +12,30 @@ def main():
     # controllers
     end_processes = mp.Value('b', False)
     tm_speed = mp.Value('f', 1.0)
+    is_tm_speed_changed = mp.Value('b', False)
     is_training = mp.Value('b', True)
-    save_model = mp.Value('b', False)
+    is_model_saved = mp.Value('b', False)
     is_map_render = mp.Value('b', True)
     is_curves_render = mp.Value('b', True)
 
     ## Processes
 
-    p_env_train = mp.Process(target = start_env, args = (databus_buffer, end_processes, tm_speed, is_training, save_model, is_map_render, is_curves_render))
-    p_graphic = mp.Process(target = Graphic, args=(databus_buffer, end_processes, tm_speed, is_training, save_model, is_map_render, is_curves_render))
+    p_env_train = mp.Process(target = start_env, args = (databus_buffer,
+                                                         end_processes,
+                                                         tm_speed,
+                                                         is_training,
+                                                         is_model_saved,
+                                                         is_map_render,
+                                                         is_curves_render,
+                                                         is_tm_speed_changed))
+    p_graphic = mp.Process(target = Graphic, args=(databus_buffer,
+                                                   end_processes,
+                                                   tm_speed,
+                                                   is_training,
+                                                   is_model_saved,
+                                                   is_map_render,
+                                                   is_curves_render,
+                                                   is_tm_speed_changed))
     p_env_train.start()
     p_graphic.start()
 

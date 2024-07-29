@@ -9,7 +9,7 @@ import pandas as pd
 import torch
 
 from config.data_classes import Point2D, DataBus, TMSimulationResult, Exp
-from config.globals import TRACK_NAME, TRACK_LENGTH, BUFFER_SIZE, FRAME_COOLDOWN_ACTION, FRAME_COOLDOWN_DISPLAY_STATE, FRAME_COOLDOWN_DISPLAY_STATS
+from config.globals import TRACK_NAME, TRACK_LENGTH, BUFFER_SIZE, FRAME_COOLDOWN_ACTION, FRAME_COOLDOWN_DISPLAY_STATE, FRAME_COOLDOWN_DISPLAY_STATS, INITIAL_GAME_SPEED
 from config.dictionaries import INPUT
 
 from tm_agents.radar_agent import RadarAgent
@@ -18,7 +18,15 @@ from rl_algorithms.dqn.dqn_trainer import DQNTrainer
 from rl_algorithms.experience_buffer import ExperienceBuffer
 
 class Environment(Client):
-    def __init__(self, databus_buffer: DataBus, end_processes, tm_speed, is_training, save_model, is_map_render, is_curves_render) -> None:
+    def __init__(self,
+                 databus_buffer: DataBus,
+                 end_processes,
+                 tm_speed,
+                 is_training,
+                 saving_model,
+                 is_map_render,
+                 is_curves_render,
+                 is_tm_speed_changed) -> None:
         super(Environment, self).__init__()
 
         ## Bus data
@@ -28,10 +36,10 @@ class Environment(Client):
         self.end_processes = end_processes
         self.tm_speed = tm_speed
         self.is_training = is_training
-        self.save_model = save_model
+        self.saving_model = saving_model
         self.is_map_render = is_map_render
         self.is_curves_render = is_curves_render
-
+        self.is_tm_speed_changed = is_tm_speed_changed
 
         self.device = 'cuda' if torch.cuda.is_available() else 'cpu'
         self.iter = 0
@@ -41,15 +49,18 @@ class Environment(Client):
         self.previous_action = None
         self.inactivity = 0
         self.is_track_finished = False
-        self.current_game_speed = 1.0
+        self.current_game_speed = INITIAL_GAME_SPEED
         self.training_stats = None
         self.start_total_time = time.time()
 
         
         list_points_left_border = pd.read_csv(f'extras/maps/{TRACK_NAME}/road_left.csv')
         list_points_right_border = pd.read_csv(f'extras/maps/{TRACK_NAME}/road_right.csv')
-        list_points_left_border = list_points_left_border.iloc[::25]
-        list_points_right_border = list_points_right_border.iloc[::25]
+        list_points_left_border = list_points_left_border.iloc[::20]
+        list_points_right_border = list_points_right_border.iloc[::20]
+        #remove 100 first points
+        list_points_left_border = list_points_left_border.iloc[10:]
+        list_points_right_border = list_points_right_border.iloc[10:]
         self.list_points_left_border = list(zip(list_points_left_border.x_values, list_points_left_border.y_values))
         self.list_points_right_border = list(zip(list_points_right_border.x_values, list_points_right_border.y_values))
         print("size left: ", len(self.list_points_left_border))
@@ -65,6 +76,10 @@ class Environment(Client):
     # Connection to Trackmania
     def on_registered(self, iface: TMInterface) -> None:
         print(f'Registered to {iface.server_name}', flush=True)
+
+        iface.set_speed(self.current_game_speed)
+        self.tm_speed.value = self.current_game_speed
+
         iface.set_timeout(40_000)
         iface.give_up()
 
@@ -87,15 +102,12 @@ class Environment(Client):
                     self.stop_env_process(iface)
 
                 # ===== Change Training Speed =====
-                if self.current_game_speed != self.tm_speed.value:
-                    self.current_game_speed = self.tm_speed.value
-                    iface.set_speed(self.tm_speed.value)
+                if self.is_tm_speed_changed.value:
+                    self.change_tm_speed(iface)
 
                 # ===== Save the model if needed =====
-                if self.save_model.value:
-                    self.dqn_trainer.save_model()
-                    print("Models correctly saved")
-                    self.save_model.value = False
+                if self.saving_model.value:
+                    self.save_model()
 
                 iface_state = iface.get_simulation_state()
                 
@@ -147,7 +159,7 @@ class Environment(Client):
                         self.databus_buffer.put(DataBus(None,
                                                         self.training_stats,
                                                         time.time() - self.start_total_time,
-                                                        self.previous_dist_to_finish_line,
+                                                        TRACK_LENGTH - self.previous_dist_to_finish_line,
                                                         self.iter/(time.time() - self.start_total_time),
                                                         len(self.experience_buffer)))
                     
@@ -162,7 +174,18 @@ class Environment(Client):
         # Save the model
         self.dqn_trainer.save_model()
         print("Environment process correctly stopped", flush=True)
-        return     
+        exit()
+
+    def change_tm_speed(self, iface: TMInterface) -> None:
+        self.current_game_speed = self.tm_speed.value
+        iface.set_speed(self.tm_speed.value)
+        print(f"Speed changed to {self.tm_speed.value}", flush=True)
+        self.is_tm_speed_changed.value = False
+
+    def save_model(self) -> None:
+        self.dqn_trainer.save_model()
+        print("Models correctly saved", flush=True)
+        self.saving_model.value = False
 
     # get reward, done, score        
     def get_TM_simulation_result(self, iface_state: TMInterface, _time: int) -> TMSimulationResult:
@@ -172,29 +195,33 @@ class Environment(Client):
         
         # Get reward from speed
         speed = iface_state.display_speed
-        if speed > 60:
-            reward += 1
-        else:
-            reward -= 1
+        reward += speed
+        if speed < 5:
+            reward -= 50
+        # if speed > 60:
+        #     reward += 1
+        # else:
+        #     reward -= 1
 
         # Get reward from getting closer to the finish line
         dist_to_finish_line = get_distance_to_finish_line(iface_state.position,
                                                           self.list_points_middle_line,
                                                           self.road_sections)
         if dist_to_finish_line < self.previous_dist_to_finish_line:
-            reward += 2
+            reward += 20
         else:
-            reward -= 2
+            reward -= 20
         self.previous_dist_to_finish_line = dist_to_finish_line
+        reward += (TRACK_LENGTH - dist_to_finish_line) / 20
 
         # Get reward from getting closer to the middle line
         #TODO: Get the distance to the middle line
 
         # Get reward if no lateral contact
         if iface_state.scene_mobil.has_any_lateral_contact:
-            reward -= 1
+            reward -= 10
         else:
-            reward += 1
+            reward += 10
 
         # --- get DONE ---
 
@@ -202,7 +229,7 @@ class Environment(Client):
         if _time > 30000:
             print("Step restarted : Car is too slow", flush=True)
             game_over = True
-            reward -= 10
+            reward -= 100
 
         # Restart if the car is stopped
         if speed < 5:
@@ -214,7 +241,7 @@ class Environment(Client):
         if self.inactivity > 20:
             print("Step restarted : Car is stopped", flush=True)
             game_over = True
-            reward -= 10
+            reward -= 100
 
         # Restart if the track is finished
         # if self.is_track_finished:
@@ -305,8 +332,22 @@ def get_road_sections():
     return file_data["road_sections"]
 
 
-def start_env(databus_buffer: DataBus, end_processes, tm_speed, is_training, save_model, is_map_render, is_curves_render) -> None:
+def start_env(databus_buffer: DataBus,
+              end_processes,
+              tm_speed,
+              is_training,
+              save_model,
+              is_map_render,
+              is_curves_render,
+              is_tm_speed_changed) -> None:
     print("Environment process started")
     server_name = f'TMInterface{sys.argv[1]}' if len(sys.argv) > 1 else 'TMInterface0'
     print(f'Connecting to {server_name}...')
-    run_client(Environment(databus_buffer, end_processes, tm_speed, is_training, save_model, is_map_render, is_curves_render))
+    run_client(Environment(databus_buffer,
+                           end_processes,
+                           tm_speed,
+                           is_training,
+                           save_model,
+                           is_map_render,
+                           is_curves_render,
+                           is_tm_speed_changed))
