@@ -22,12 +22,12 @@ class RadarAgent:
         distances = [detected_point.dist]
 
         for i in range(1, 4):
-            car_pos_ahead1 = point_ahead(car_pos, iface_state.yaw_pitch_roll[0], np.pi/8*i)
+            car_pos_ahead1 = point_ahead(car_pos, iface_state.yaw_pitch_roll[0], np.pi/9*i)
             detected_point = closest_intersection(car_pos, car_pos_ahead1, self.list_points_left_border, self.list_points_right_border)
             detected_points.append(detected_point)
             distances.append(detected_point.dist)
 
-            car_pos_ahead2 = point_ahead(car_pos, iface_state.yaw_pitch_roll[0], -np.pi/8*i)
+            car_pos_ahead2 = point_ahead(car_pos, iface_state.yaw_pitch_roll[0], -np.pi/9*i)
             detected_point = closest_intersection(car_pos, car_pos_ahead2, self.list_points_left_border, self.list_points_right_border)
             detected_points.append(detected_point)
             distances.append(detected_point.dist)
@@ -53,7 +53,8 @@ def intersection_line_segment(line_p1: Point2D, line_p2: Point2D, seg_p1: Point2
     denom = (seg_p2.y - seg_p1.y) * (line_p2.x - line_p1.x) - (seg_p2.x - seg_p1.x) * (line_p2.y - line_p1.y)
 
     if denom == 0:
-        return Point2D(0.0, 0.0)  # Les droites sont parallèles
+        # print("Denom = 0", flush=True)
+        return None  # Les droites sont parallèles
 
     ua = ((seg_p2.x - seg_p1.x) * (line_p1.y - seg_p1.y) - (seg_p2.y - seg_p1.y) * (line_p1.x - seg_p1.x)) / denom
     ub = ((line_p2.x - line_p1.x) * (line_p1.y - seg_p1.y) - (line_p2.y - line_p1.y) * (line_p1.x - seg_p1.x)) / denom
@@ -63,8 +64,18 @@ def intersection_line_segment(line_p1: Point2D, line_p2: Point2D, seg_p1: Point2
         x = line_p1.x + ua * (line_p2.x - line_p1.x)
         y = line_p1.y + ua * (line_p2.y - line_p1.y)
         return Point2D(x, y)
+    if ua < 0:
+        # Calcul du point d'intersection
+        return Point2D(0, 0)
+
+    if ub < 0 or ub > 1:
+        # return Point2D(0, 0)
+        # print("Intersection not in segment", flush=True)
+        return None
     else:
-        return Point2D(0.0, 0.0)
+        # print("No intersection", flush=True)
+        # return Point2D(0, 0)
+        return None
 
 # Return the closest intersection point between a line and the borders of the track 
 def find_closest_intersection(line_p1: Point2D, line_p2: Point2D, list_points_border) -> Point2D:
@@ -84,6 +95,8 @@ def find_closest_intersection(line_p1: Point2D, line_p2: Point2D, list_points_bo
                 min_dist = dist
                 closest_point = point
     
+    if closest_point == None:
+        print("No intersection found", flush=True)
     return closest_point
 
 def closest_intersection(car_pos: Point2D, car_pos_ahead: Point2D, list_points_left_border, list_points_right_border) -> DetectedPoint:

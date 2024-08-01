@@ -66,7 +66,13 @@ class Graphic:
                     self.plot_map.update_infos(databus.radar_state)
 
                 # Curves
+                # if self.is_curves_render is None:
+                #     print("is_curves_render is None", flush=True)
+                # if databus.distance_travelled == 0.0:
+                #     print("databus.distance_travelled == 0.0", flush=True)
+
                 if databus.training_stats is not None and databus.distance_travelled != 0.0:
+                    # print("update curves", flush=True)
                     self.plot_curves.update_infos(databus.training_stats, databus.distance_travelled)
 
                 # Stats
@@ -244,6 +250,7 @@ class PlotCurves:
 
     def update_plot(self):
         # Update graph distances
+        # print(self.list_epoch, self.list_distance_traveled, self.list_loss, flush=True)
         self.graph_distances.clear()
         self.graph_distances.set_title('Distances :')
         self.graph_distances.set_xlabel('Tries')
@@ -269,8 +276,15 @@ class PlotMap:
     def __init__(self, root):
         self.root = root
 
-        self.left_side_road_coordinates = pd.read_csv(f'extras/maps/{TRACK_NAME}/road_left.csv')
-        self.right_side_road_coordinates = pd.read_csv(f'extras/maps/{TRACK_NAME}/road_right.csv')
+        list_points_left_border = pd.read_csv(f'extras/maps/{TRACK_NAME}/road_left.csv')
+        list_points_right_border = pd.read_csv(f'extras/maps/{TRACK_NAME}/road_right.csv')
+        list_points_left_border = list_points_left_border.iloc[::20]
+        list_points_right_border = list_points_right_border.iloc[::20]
+        #remove 100 first points
+        # self.left_side_road_coordinates = list_points_left_border.iloc[10:]
+        # self.right_side_road_coordinates = list_points_right_border.iloc[10:]
+        self.left_side_road_coordinates = list_points_left_border
+        self.right_side_road_coordinates = list_points_right_border
 
         self.fig, self.map = plt.subplots(figsize=(4, 6))
         self.fig.suptitle('Training Curves')
@@ -298,9 +312,7 @@ class PlotMap:
 
         # Sensors
         for detected_point in radar_state.detected_points:
-            print(detected_point.dist, flush=True)
             color = plt.cm.RdYlGn(detected_point.dist)
-            print(color, flush=True)
             self.map.plot(detected_point.pos.x, detected_point.pos.y, 'o', color=color, label='sensor')
 
         # ---- Draw ----

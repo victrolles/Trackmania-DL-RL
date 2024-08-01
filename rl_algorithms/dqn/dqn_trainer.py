@@ -19,11 +19,15 @@ class DQNTrainer:
         self.stop_training = False
         
         # Model
-        self.model_network = DQNModel(7, 512, 5).to(self.device)
-        self.model_target_network = DQNModel(7, 512, 5).to(self.device)
+        self.model_network = DQNModel(7, 256, 5).to(self.device)
+        self.model_target_network = DQNModel(7, 256, 5).to(self.device)
+
+        self.optimizer = optim.Adam(self.model_network.parameters(), lr=LR)
+        self.criterion = nn.MSELoss()
 
         if LOAD_SAVED_MODEL:
             self.load_model()
+            
 
         # Experience buffer : shared memory
         self.experience_buffer = experience_buffer
@@ -32,12 +36,11 @@ class DQNTrainer:
         self.epsilon = EPSILON_START
         self.epoch = 0
         self.step = 0
-        self.loss = 0
+        self.loss_value = 0
         self.training_time = 0
 
         # Training parameters
-        self.optimizer = optim.Adam(self.model_network.parameters(), lr=LR)
-        self.criterion = nn.MSELoss()
+        
 
     def train_model(self) -> TrainingStats:
 
@@ -61,7 +64,7 @@ class DQNTrainer:
 
         self.training_time += time.time() - start_training_time
 
-        return TrainingStats(self.epoch, self.step, self.loss, self.training_time, self.epsilon)    
+        return TrainingStats(self.epoch, self.step, self.loss_value, self.training_time, self.epsilon)    
 
     def update_model(self):
 
@@ -89,11 +92,11 @@ class DQNTrainer:
         expected_state_action_values = next_state_values * GAMMA + rewards
 
         # Compute the loss
-        loss = self.criterion(state_action_values, expected_state_action_values)
-        self.loss = loss.item()
+        self.loss = self.criterion(state_action_values, expected_state_action_values)
+        self.loss_value = self.loss.item()
 
         # Update the model
-        loss.backward()
+        self.loss.backward()
         self.optimizer.step()
 
     def update_epsilon(self):
