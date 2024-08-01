@@ -8,6 +8,8 @@ class MainClient(Client):
     def __init__(self) -> None:
         super(MainClient, self).__init__()
         self.iter = 0
+        self.checkpoint = None
+        self.count = 0
 
     def on_registered(self, iface: TMInterface) -> None:
         print(f'Registered to {iface.server_name}')
@@ -20,15 +22,30 @@ class MainClient(Client):
         self.iter += 1
         # iface.set_speed(2)
         if _time >= 0:
-            inputs = {  # 0 Forward
-                "left": False,
-                "right": False,
-                "accelerate": True,
-                "brake": False,
-            }
-            iface.set_input_state(**inputs)
-            state = iface.get_simulation_state()
-            print(f'iter : {self.iter}, time : {_time}', end='\r')
+            # inputs = {  # 0 Forward
+            #     "left": False,
+            #     "right": False,
+            #     "accelerate": True,
+            #     "brake": False,
+            # }
+            # iface.set_input_state(**inputs)
+            
+            
+            # if c pressed, then save
+            # if self.iter % 500 == 0:
+            #     iface.set_speed(1.5)
+
+            if self.iter % 100 == 0:
+                string = f"save_state checkpoint_{self.count}"
+                print("Saving checkpoint", flush=True)
+                iface.execute_command(string)
+                self.count += 1
+
+            # if self.iter % 1500 == 0:
+            #     iface.set_checkpoint_state(self.checkpoint)
+
+            # state = iface.get_simulation_state()
+            # print(f'iter : {self.iter}, time : {_time}', end='\r')
 
             # if _time > 20000:
             #     iface.give_up()
