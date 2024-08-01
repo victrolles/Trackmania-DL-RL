@@ -17,7 +17,8 @@ class Graphic:
                  save_model,
                  is_map_render,
                  is_curves_render,
-                 is_tm_speed_changed) -> None:
+                 is_tm_speed_changed,
+                 is_random_spawn) -> None:
 
         print("Graphic process started", flush=True)
 
@@ -32,6 +33,7 @@ class Graphic:
         self.is_map_render = is_map_render
         self.is_curves_render = is_curves_render
         self.is_tm_speed_changed = is_tm_speed_changed
+        self.is_random_spawn = is_random_spawn
 
         self.iter = 0
         self.start_time = time.time()
@@ -125,6 +127,7 @@ class Graphic:
         self.label_button_save_model = tk.Label(self.root, text="Save models", font=("Arial", 20))
         self.label_button_render_map = tk.Label(self.root, text="Render map:", font=("Arial", 20))
         self.label_button_render_curves = tk.Label(self.root, text="Render curves:", font=("Arial", 20))
+        self.label_button_random_spawn = tk.Label(self.root, text="Random spawn:", font=("Arial", 20))
 
         ## buttons:
         self.button_training = tk.Button(self.root, text="Switch mode", command=self.switch_mode, font=("Arial", 20))
@@ -132,6 +135,7 @@ class Graphic:
         self.button_speed = tk.Button(self.root, text="Set", command=self.change_game_speed, font=("Arial", 20))
         self.button_render_map = tk.Button(self.root, text="On", command=self.change_render_map, font=("Arial", 20))
         self.button_render_curves = tk.Button(self.root, text="On", command=self.change_render_curves, font=("Arial", 20))
+        self.button_random_spawn = tk.Button(self.root, text="On", command=self.change_random_spawn, font=("Arial", 20))
         self.button_exit = tk.Button(self.root, text="Exit", command=self.exit, font=("Arial", 20))
 
         ## Entry
@@ -160,9 +164,11 @@ class Graphic:
 
         self.label_button_render_map.place(x=900, y=300)
         self.label_button_render_curves.place(x=900, y=340)
+        self.label_button_random_spawn.place(x=900, y=260)
 
         self.button_render_map.place(x=1100, y=290)
         self.button_render_curves.place(x=1100, y=330)
+        self.button_random_spawn.place(x=1100, y=250)
         self.button_exit.place(x=1100, y=65)
 
     # one way buttons
@@ -196,6 +202,10 @@ class Graphic:
     def change_render_curves(self):
         self.is_curves_render.value = not self.is_curves_render.value
         self.button_render_curves.config(text="On" if self.is_curves_render.value else "Off")
+
+    def change_random_spawn(self):
+        self.is_random_spawn.value = not self.is_random_spawn.value
+        self.button_random_spawn.config(text="On" if self.is_random_spawn.value else "Off")
 
     def switch_mode(self):
         self.is_training.value = not self.is_training.value

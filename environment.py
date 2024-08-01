@@ -9,8 +9,8 @@ import pandas as pd
 import torch
 import numpy as np
 
-from config.data_classes import Point2D, DataBus, TMSimulationResult, Exp, RadarState, Point2D
-from config.globals import TRACK_NAME, TRACK_LENGTH, BUFFER_SIZE, FRAME_COOLDOWN_ACTION, FRAME_COOLDOWN_DISPLAY_STATE, FRAME_COOLDOWN_DISPLAY_STATS, INITIAL_GAME_SPEED
+from config.data_classes import Point2D, DataBus, TMSimulationResult, Exp, RadarState, Reward_limits
+from config.globals import TRACK_NAME, TRACK_LENGTH, BUFFER_SIZE, FRAME_COOLDOWN_ACTION, FRAME_COOLDOWN_DISPLAY_STATE, FRAME_COOLDOWN_DISPLAY_STATS, INITIAL_GAME_SPEED, RANDOM_SPAWN, SPAWN_NUMBER
 from config.dictionaries import INPUT
 
 from tm_agents.radar_agent import RadarAgent
@@ -27,7 +27,8 @@ class Environment(Client):
                  saving_model,
                  is_map_render,
                  is_curves_render,
-                 is_tm_speed_changed) -> None:
+                 is_tm_speed_changed,
+                 is_random_spawn) -> None:
         super(Environment, self).__init__()
 
         ## Bus data
@@ -41,6 +42,7 @@ class Environment(Client):
         self.is_map_render = is_map_render
         self.is_curves_render = is_curves_render
         self.is_tm_speed_changed = is_tm_speed_changed
+        self.is_random_spawn = is_random_spawn
 
         self.device = 'cuda' if torch.cuda.is_available() else 'cpu'
         self.iter = 0
@@ -49,10 +51,14 @@ class Environment(Client):
         self.previous_state = None
         self.previous_action = None
         self.inactivity = 0
+        self.start_simulation_time = time.time()
+        self.has_respawned = False
         self.is_track_finished = False
         self.current_game_speed = INITIAL_GAME_SPEED
+        self.is_random_spawn.value = RANDOM_SPAWN
         self.training_stats = None
         self.start_total_time = time.time()
+        self.reward_limits = Reward_limits(-1, 1)
 
         
         list_points_left_border = pd.read_csv(f'extras/maps/{TRACK_NAME}/road_left.csv')
@@ -92,6 +98,12 @@ class Environment(Client):
 
         if _time >= 0:
             self.iter += 1
+
+            if self.has_respawned and _time > 300:
+                self.has_respawned = False
+                random_int = np.random.randint(0, SPAWN_NUMBER)
+                string = f"load_state checkpoint_{random_int}.bin"
+                iface.execute_command(string)
 
             if self.iter % FRAME_COOLDOWN_ACTION == 0:
 
@@ -171,6 +183,10 @@ class Environment(Client):
 
                     self.previous_dist_to_finish_line = TRACK_LENGTH
                     self.inactivity = 0
+                    self.start_simulation_time = time.time()
+
+                    if self.is_random_spawn.value:
+                        self.has_respawned = True
 
     def stop_env_process(self, iface: TMInterface) -> None:
         # Close the connection to Trackmania
@@ -243,7 +259,8 @@ class Environment(Client):
         # --- get DONE ---
 
         # Restart if too long
-        if _time > 30000:
+        if time.time() - self.start_simulation_time > 30:
+            print(time.time() - self.start_simulation_time)
             print("Step restarted : Car is too slow", flush=True)
             game_over = True
             reward -= 5
@@ -261,14 +278,25 @@ class Environment(Client):
             reward -= 5
 
         # Restart if the track is finished
-        # if self.is_track_finished:
-        #     self.is_track_finished = False
+        if self.is_track_finished:
+            self.is_track_finished = False
 
-        #     print("Step restarted : Track is finished")
-        #     gave_over = True
-        #     reward += 10
+            print("Step restarted : Track is finished")
+            game_over = True
+            reward += 10
 
         score = TRACK_LENGTH - dist_to_finish_line
+
+        if reward < self.reward_limits.min:
+            self.reward_limits.min = reward
+            reward = -1
+        elif reward > self.reward_limits.max:
+            self.reward_limits.max = reward
+            reward = 1
+        elif reward < 0:
+            reward = reward / self.reward_limits.min
+        else:
+            reward = reward / self.reward_limits.max
 
         return TMSimulationResult(reward, game_over, score)
 
@@ -411,7 +439,8 @@ def start_env(databus_buffer: DataBus,
               save_model,
               is_map_render,
               is_curves_render,
-              is_tm_speed_changed) -> None:
+              is_tm_speed_changed,
+              is_random_spawn) -> None:
     print("Environment process started")
     server_name = f'TMInterface{sys.argv[1]}' if len(sys.argv) > 1 else 'TMInterface0'
     print(f'Connecting to {server_name}...')
@@ -422,4 +451,5 @@ def start_env(databus_buffer: DataBus,
                            save_model,
                            is_map_render,
                            is_curves_render,
-                           is_tm_speed_changed))
+                           is_tm_speed_changed,
+                           is_random_spawn))

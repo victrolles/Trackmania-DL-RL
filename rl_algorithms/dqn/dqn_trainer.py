@@ -19,8 +19,8 @@ class DQNTrainer:
         self.stop_training = False
         
         # Model
-        self.model_network = DQNModel(7, 256, 5).to(self.device)
-        self.model_target_network = DQNModel(7, 256, 5).to(self.device)
+        self.model_network = DQNModel(9, 128, 5).to(self.device)
+        self.model_target_network = DQNModel(9, 128, 5).to(self.device)
 
         self.optimizer = optim.Adam(self.model_network.parameters(), lr=LR)
         self.criterion = nn.MSELoss()

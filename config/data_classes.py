@@ -8,6 +8,11 @@ class Point3D:
     z: float
 
 @dataclass
+class Reward_limits:
+    min: int
+    max: int
+
+@dataclass
 class Point2D:
     x: float
     y: float
