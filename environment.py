@@ -10,7 +10,7 @@ import torch
 import numpy as np
 
 from config.data_classes import Point2D, DataBus, TMSimulationResult, Exp, RadarState, Reward_limits
-from config.globals import TRACK_NAME, TRACK_LENGTH, BUFFER_SIZE, FRAME_COOLDOWN_ACTION, FRAME_COOLDOWN_DISPLAY_STATE, FRAME_COOLDOWN_DISPLAY_STATS, INITIAL_GAME_SPEED, RANDOM_SPAWN, SPAWN_NUMBER
+from config.globals import TRACK_NAME, TRACK_LENGTH, BUFFER_SIZE, FRAME_COOLDOWN_ACTION, FRAME_COOLDOWN_DISPLAY_STATE, FRAME_COOLDOWN_DISPLAY_STATS, INITIAL_GAME_SPEED, RANDOM_SPAWN, SPAWN_NUMBER, SAVE_MODELS_RATE
 from config.dictionaries import INPUT
 
 from tm_agents.radar_agent import RadarAgent
@@ -47,12 +47,15 @@ class Environment(Client):
         self.device = 'cuda' if torch.cuda.is_available() else 'cpu'
         self.iter = 0
         self.experience_buffer = ExperienceBuffer(BUFFER_SIZE)
-        self.previous_dist_to_finish_line = TRACK_LENGTH
+        self.dist_to_finish_line = 0
+        self.start_dist_to_finish_line = 0
         self.previous_state = None
         self.previous_action = None
+        self.previous_tm_simulation_result = None
         self.inactivity = 0
         self.start_simulation_time = time.time()
         self.has_respawned = False
+        self.has_get_start_dist = False
         self.is_track_finished = False
         self.current_game_speed = INITIAL_GAME_SPEED
         self.is_random_spawn.value = RANDOM_SPAWN
@@ -84,7 +87,7 @@ class Environment(Client):
         iface.set_speed(self.current_game_speed)
         self.tm_speed.value = self.current_game_speed
 
-        iface.set_timeout(40_000)
+        iface.set_timeout(20_000)
         iface.give_up()
 
     # Function to detect if the car crossed the finish line
@@ -99,11 +102,18 @@ class Environment(Client):
         if _time >= 0:
             self.iter += 1
 
-            if self.has_respawned and _time > 300:
+            if self.has_respawned and _time > 100 and _time < 1000 :
                 self.has_respawned = False
                 random_int = np.random.randint(0, SPAWN_NUMBER)
                 string = f"load_state checkpoint_{random_int}.bin"
                 iface.execute_command(string)
+                
+
+            if not self.has_respawned and self.has_get_start_dist and _time > 300 :
+                self.has_get_start_dist = False
+                iface_state = iface.get_simulation_state()
+                car_pos = Point2D(iface_state.position[0], iface_state.position[2])
+                self.start_dist_to_finish_line = get_distance_to_finish_line(car_pos,None,self.list_points_middle_line,self.road_sections, False)[0]
 
             if self.iter % FRAME_COOLDOWN_ACTION == 0:
 
@@ -117,7 +127,8 @@ class Environment(Client):
 
                 # ===== Save the model if needed =====
                 if self.saving_model.value:
-                    self.save_model()
+                    if self.iter % SAVE_MODELS_RATE == 0:
+                        self.save_model()
 
                 iface_state = iface.get_simulation_state()
                 
@@ -135,17 +146,19 @@ class Environment(Client):
                     if check_valid_RadarState(state):
                         experience = Exp(self.previous_state.distances,
                                         self.previous_action,
-                                        tm_simulation_result.reward,
-                                        state.distances,
-                                        tm_simulation_result.done)
+                                        self.previous_tm_simulation_result.reward,
+                                        self.previous_tm_simulation_result.done,
+                                        state.distances)
                         self.experience_buffer._append(experience)
 
                 # ===== Get the current state of the car =====
                 if tm_simulation_result.done:
                     self.previous_state = None
                     self.previous_action = None
+                    self.previous_tm_simulation_result = None
                 else:
                     self.previous_state = state
+                    self.previous_tm_simulation_result = tm_simulation_result
                     if iface_state.position[2] < 122:
                         self.previous_action = 0
                     else:
@@ -171,22 +184,28 @@ class Environment(Client):
 
                     self.training_stats = self.dqn_trainer.train_model()
 
+                    if not RANDOM_SPAWN:
+                        self.start_dist_to_finish_line = TRACK_LENGTH
+
+                    dist = self.start_dist_to_finish_line - self.dist_to_finish_line
+                    # print(f"Distance to finish line: {self.start_dist_to_finish_line}, et {self.dist_to_finish_line}", flush=True)
+
                     if self.iter % FRAME_COOLDOWN_DISPLAY_STATS == 0 and self.is_curves_render.value:
                         self.databus_buffer.put(DataBus(None,
                                                         self.training_stats,
                                                         time.time() - self.start_total_time,
-                                                        TRACK_LENGTH - self.previous_dist_to_finish_line,
+                                                        dist,
                                                         self.iter/(time.time() - self.start_total_time),
                                                         len(self.experience_buffer)))
                     
                     iface.give_up()
 
-                    self.previous_dist_to_finish_line = TRACK_LENGTH
                     self.inactivity = 0
                     self.start_simulation_time = time.time()
 
                     if self.is_random_spawn.value:
                         self.has_respawned = True
+                        self.has_get_start_dist = True
 
     def stop_env_process(self, iface: TMInterface) -> None:
         # Close the connection to Trackmania
@@ -199,7 +218,6 @@ class Environment(Client):
     def change_tm_speed(self, iface: TMInterface) -> None:
         self.current_game_speed = self.tm_speed.value
         iface.set_speed(self.tm_speed.value)
-        print(f"Speed changed to {self.tm_speed.value}", flush=True)
         self.is_tm_speed_changed.value = False
 
     def save_model(self) -> None:
@@ -243,7 +261,7 @@ class Environment(Client):
         #     reward += 7
         # else:
         #     reward -= 2
-        self.previous_dist_to_finish_line = dist_to_finish_line
+        self.dist_to_finish_line = dist_to_finish_line
         # reward += (TRACK_LENGTH - dist_to_finish_line) / 20
 
         # Get reward from getting closer to the middle line
@@ -300,7 +318,7 @@ class Environment(Client):
 
         return TMSimulationResult(reward, game_over, score)
 
-def get_distance_to_finish_line(car_pos: Point2D, car_ahead: Point2D, list_points_on_middle_line, road_sections):
+def get_distance_to_finish_line(car_pos: Point2D, car_ahead: Point2D, list_points_on_middle_line, road_sections, extra_infos: bool = True):
 
     # Initialize the minimum distance to a high value
     min_distance = 1000
@@ -334,11 +352,17 @@ def get_distance_to_finish_line(car_pos: Point2D, car_ahead: Point2D, list_point
     min_point_point2D = Point2D(min_point[0], min_point[1])
     previous_point_point2D = Point2D(previous_point[0], previous_point[1])
 
-    # Distance car to line
-    distance_to_line = distance_point_to_line(car_pos, previous_point_point2D, min_point_point2D)
+    if extra_infos:
 
-    # Get angle between the car direction and the direction of the track
-    angle = angle_between_lines(previous_point_point2D, min_point_point2D, car_pos, car_ahead)
+        # Distance car to line
+        distance_to_line = distance_point_to_line(car_pos, previous_point_point2D, min_point_point2D)
+
+        # Get angle between the car direction and the direction of the track
+        angle = angle_between_lines(previous_point_point2D, min_point_point2D, car_pos, car_ahead)
+
+    else:
+        distance_to_line = 0
+        angle = 0
 
     # Get the road section where the car is located
     for idx, road_section in enumerate(road_sections):

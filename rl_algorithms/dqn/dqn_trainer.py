@@ -107,15 +107,14 @@ class DQNTrainer:
             self.model_target_network.load_state_dict(self.model_network.state_dict())
 
     def save_model(self):
-        if self.epoch % SAVE_MODELS_RATE == 0:
-            torch.save({
-                'model_network_state_dict': self.model_network.state_dict(),
-                'model_target_network_state_dict': self.model_target_network.state_dict(),
-                'optimizer_state_dict': self.optimizer.state_dict(),
-                'epoch': self.epoch,
-                'trainig_time': self.training_time
-            }, f'extras/maps/{TRACK_NAME}/saves/model.pth')
-            print("Models correctly saved")
+        torch.save({
+            'model_network_state_dict': self.model_network.state_dict(),
+            'model_target_network_state_dict': self.model_target_network.state_dict(),
+            'optimizer_state_dict': self.optimizer.state_dict(),
+            'epoch': self.epoch,
+            'trainig_time': self.training_time
+        }, f'extras/maps/{TRACK_NAME}/saves/model.pth')
+        print("Models correctly saved")
 
     def load_model(self):
         checkpoint = torch.load(f'extras/maps/{TRACK_NAME}/saves/model.pth')

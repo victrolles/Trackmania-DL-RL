@@ -60,8 +60,8 @@ class Exp:
     state: RadarState
     action: int
     reward: float
-    next_state: RadarState
     done: bool
+    next_state: RadarState
 
 @dataclass
 class DataBus:
