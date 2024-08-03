@@ -10,7 +10,8 @@ Code in DQN : https://github.com/victrolles/Trackmania-DL-RL/tree/DQN_RadarAgent
 * Deep Q Network
 * LR : 1e-4
 * Epsilon Decay : 0.0005
-  ![drawing](https://github.com/user-attachments/assets/4e93af34-57db-4191-b5f2-f13ba7600cd4)
+![NN](https://github.com/user-attachments/assets/db88853e-b23f-44d0-a763-d40c14fd8278)
+
 
 
 ## First Good Result
