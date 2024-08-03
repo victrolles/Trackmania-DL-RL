@@ -6,9 +6,12 @@ Code in RadarAgent.py : https://github.com/victrolles/Trackmania-DL-RL/blob/DQN_
 ![drawing](https://github.com/user-attachments/assets/a7da6fdc-91cd-4bb9-b561-64f773454ddd)
 
 ## Reinforcement Learning Algorithm
+Code in DQN : https://github.com/victrolles/Trackmania-DL-RL/tree/DQN_RadarAgent/rl_algorithms/dqn
 * Deep Q Network
 * LR : 1e-4
 * Epsilon Decay : 0.0005
+  ![drawing](https://github.com/user-attachments/assets/4e93af34-57db-4191-b5f2-f13ba7600cd4)
+
 
 ## First Good Result
 ![TrackMania Nations Forever (TMInterface 1 4 3) 2024-08-02 21-54-17 (online-video-cutter com)](https://github.com/user-attachments/assets/f89c83af-c25a-48e9-8961-c065848f946a)
