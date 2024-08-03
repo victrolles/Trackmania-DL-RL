@@ -1,7 +1,10 @@
 # Trackmania-DL-RL
 
 ## TM Inputs
-![drawing](https://github.com/user-attachments/assets/66dbf068-5132-46b6-a1d9-7cc72bcd69fa)
+Code in RadarAgent.py : https://github.com/victrolles/Trackmania-DL-RL/blob/DQN_RadarAgent/tm_agents/radar_agent.py
+
+![drawing](https://github.com/user-attachments/assets/a7da6fdc-91cd-4bb9-b561-64f773454ddd)
+
 ## Reinforcement Learning Algorithm
 * Deep Q Network
 * LR : 1e-4
