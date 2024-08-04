@@ -1,3 +1,10 @@
+from enum import Enum
+
+class Rd(Enum):
+    LEFT = "left"
+    RIGHT = "right"
+    MIDDLE = "middle"
+
 INPUT = [
             {  # 0 Up
                 "left": False,

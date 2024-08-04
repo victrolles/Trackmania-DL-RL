@@ -20,14 +20,27 @@ class Point2D:
     def to_array(self):
         return np.array([self.x, self.y])
     
-    def distance(self, point: 'Point2D'):
+    def to_tuple(self):
+        return (self.x, self.y)
+    
+    def to_list(self):
+        return [self.x, self.y]
+    
+    def distance(self, point: 'Point2D', normalize: bool = False, max_dist: float = 100.0) -> float:
+
         # Euclidean distance
         norm = np.linalg.norm(self.to_array() - point.to_array())
-        # normalize
-        if norm > 100:
-            return 1.0
-        else:
-            return norm / 100.0
+
+        # normalize if needed
+        if normalize:
+            if norm > max_dist:
+                norm = 1.0
+            else:
+                norm /= max_dist
+            
+        return norm
+
+        
 
 @dataclass
 class DetectedPoint:
@@ -45,7 +58,7 @@ class RadarState:
 class TMSimulationResult:
     reward: int
     done: bool
-    score: float
+    dist_to_finish_line: float
 
 @dataclass
 class TrainingStats:

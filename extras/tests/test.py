@@ -22,8 +22,9 @@ from torch import argmax
 
 n_step_rewards = []
 rewards = [1, 9, 2, 8, 3, 7, 4, 6, 5]
-for i in range(len(rewards)):
-    n_step_reward = sum([1 ** j * rewards[i + j] for j in range(min(3, len(rewards) - i))])
-    n_step_rewards.append(n_step_reward)
+# for i in range(len(rewards)):
+#     n_step_reward = sum([1 ** j * rewards[i + j] for j in range(min(3, len(rewards) - i))])
+#     n_step_rewards.append(n_step_reward)
 
-print(n_step_rewards)
+# print(n_step_rewards)
+print(rewards[-3:])

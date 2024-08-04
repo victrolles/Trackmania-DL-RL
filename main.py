@@ -1,6 +1,6 @@
 import torch.multiprocessing as mp
 
-from config.globals import BUFFER_SIZE
+from librairies.globals import BUFFER_SIZE
 from environment import start_env
 from graphic import Graphic
 

@@ -4,8 +4,8 @@ import torch
 import torch.nn as nn
 import torch.optim as optim
 
-from config.globals import LR, GAMMA, BATCH_SIZE, SYNC_TARGET_RATE, SAVE_MODELS_RATE, EPSILON_START, EPSILON_END, EPSILON_DECAY, LOAD_SAVED_MODEL, TRACK_NAME
-from config.data_classes import TrainingStats
+from librairies.globals import LR, GAMMA, BATCH_SIZE, SYNC_TARGET_RATE, EPSILON_START, EPSILON_END, EPSILON_DECAY, LOAD_SAVED_MODEL, TRACK_NAME
+from librairies.data_classes import TrainingStats
 
 from rl_algorithms.dqn.dqn_model import DQNModel
 from rl_algorithms.experience_buffer import ExperienceBuffer
@@ -19,8 +19,8 @@ class DQNTrainer:
         self.stop_training = False
         
         # Model
-        self.model_network = DQNModel(9, 128, 5).to(self.device)
-        self.model_target_network = DQNModel(9, 128, 5).to(self.device)
+        self.model_network = DQNModel(10, 128, 5).to(self.device)
+        self.model_target_network = DQNModel(10, 128, 5).to(self.device)
 
         self.optimizer = optim.Adam(self.model_network.parameters(), lr=LR)
         self.criterion = nn.MSELoss()

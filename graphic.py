@@ -5,8 +5,9 @@ import matplotlib.pyplot as plt
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 import pandas as pd
 
-from config.data_classes import DataBus, Point2D, TrainingStats, RadarState
-from config.globals import TRACK_NAME
+from librairies.data_classes import DataBus, TrainingStats, RadarState
+from librairies.tm_math_functions import delta_time_to_str, get_road_df
+from librairies.dictionaries import Rd
 
 class Graphic:
     def __init__(self,
@@ -66,12 +67,6 @@ class Graphic:
                 # Map
                 if databus.radar_state is not None:
                     self.plot_map.update_infos(databus.radar_state)
-
-                # Curves
-                # if self.is_curves_render is None:
-                #     print("is_curves_render is None", flush=True)
-                # if databus.distance_travelled == 0.0:
-                #     print("databus.distance_travelled == 0.0", flush=True)
 
                 if databus.training_stats is not None and databus.distance_travelled != 0.0:
                     # print("update curves", flush=True)
@@ -230,13 +225,6 @@ class Graphic:
         self.label_size_exp_buffer.config(text=f"Exp buffer size: {exp_buffer_size}")
         self.label_size_bus_buffer.config(text=f"Bus buffer size: {bus_buffer_size}")
 
-def delta_time_to_str(delta_time: float):
-    minute = int(delta_time / 60)
-    seconde = int(delta_time % 60)
-    string = f"{minute}min {seconde}s"
-    return string
-
-
 class PlotCurves:
     def __init__(self, root):
         self.root = root
@@ -246,6 +234,7 @@ class PlotCurves:
 
         self.list_epoch = []
         self.list_distance_traveled = []
+        self.list_mean10_distance_traveled = []
         self.list_loss = []
 
         self.canvas = FigureCanvasTkAgg(self.fig, master=self.root)
@@ -256,17 +245,22 @@ class PlotCurves:
         self.list_distance_traveled.append(distance_traveled)
         self.list_loss.append(training_stats.loss)
 
+        if len(self.list_distance_traveled) > 10:
+            self.list_mean10_distance_traveled.append(sum(self.list_distance_traveled[-10:]) / 10)
+        else:
+            self.list_mean10_distance_traveled.append(sum(self.list_distance_traveled) / len(self.list_distance_traveled))
+
         self.update_plot()
 
     def update_plot(self):
         # Update graph distances
-        # print(self.list_epoch, self.list_distance_traveled, self.list_loss, flush=True)
         self.graph_distances.clear()
         self.graph_distances.set_title('Distances :')
         self.graph_distances.set_xlabel('Tries')
         self.graph_distances.set_ylabel('Distance')
         self.graph_distances.set_yscale('linear')
         self.graph_distances.plot(self.list_epoch, self.list_distance_traveled)
+        self.graph_distances.plot(self.list_epoch, self.list_mean10_distance_traveled, 'go')
         self.graph_distances.set_ylim(ymin=0)
         self.graph_distances.text(len(self.list_distance_traveled)-1, self.list_distance_traveled[-1], str(int(self.list_distance_traveled[-1])))
 
@@ -278,7 +272,6 @@ class PlotCurves:
         self.graph_losses.set_yscale('log')
         self.graph_losses.plot(self.list_epoch, self.list_loss)
         self.graph_losses.set_ylim(ymin=0)
-        self.graph_losses.text(len(self.list_loss)-1, self.list_loss[-1], "{:.2f}".format(self.list_loss[-1]))
 
         # Draw
         self.canvas.draw()
@@ -288,15 +281,9 @@ class PlotMap:
     def __init__(self, root):
         self.root = root
 
-        list_points_left_border = pd.read_csv(f'extras/maps/{TRACK_NAME}/road_left.csv')
-        list_points_right_border = pd.read_csv(f'extras/maps/{TRACK_NAME}/road_right.csv')
-        list_points_left_border = list_points_left_border.iloc[::20]
-        list_points_right_border = list_points_right_border.iloc[::20]
-        #remove 100 first points
-        # self.left_side_road_coordinates = list_points_left_border.iloc[10:]
-        # self.right_side_road_coordinates = list_points_right_border.iloc[10:]
-        self.left_side_road_coordinates = list_points_left_border
-        self.right_side_road_coordinates = list_points_right_border
+        
+        self.left_border_df = get_road_df(Rd.LEFT, True)
+        self.right_border_df = get_road_df(Rd.RIGHT, True)
 
         self.fig, self.map = plt.subplots(figsize=(4, 6))
         self.fig.suptitle('Training Curves')
@@ -315,8 +302,8 @@ class PlotMap:
         self.map.clear()
 
         # Road
-        self.map.plot(self.left_side_road_coordinates.x_values, self.left_side_road_coordinates.y_values, color='black', label='left_side')
-        self.map.plot(self.right_side_road_coordinates.x_values, self.right_side_road_coordinates.y_values, color='red', label='right_side')
+        self.map.plot(self.left_border_df.x_values, self.left_border_df.y_values, color='black', label='left_side')
+        self.map.plot(self.right_border_df.x_values, self.right_border_df.y_values, color='red', label='right_side')
 
         # Car
         self.map.plot(radar_state.car_pos.x, radar_state.car_pos.y, 'bo', label='car')
