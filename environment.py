@@ -186,7 +186,7 @@ class Environment(Client):
 
                     self.training_stats = self.dqn_trainer.train_model()
 
-                    if not RANDOM_SPAWN:
+                    if not self.is_random_spawn.value:
                         self.start_dist_to_finish_line = TRACK_LENGTH
 
                     dist = self.start_dist_to_finish_line - self.dist_to_finish_line

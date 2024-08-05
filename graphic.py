@@ -235,6 +235,7 @@ class PlotCurves:
         self.list_epoch = []
         self.list_distance_traveled = []
         self.list_mean10_distance_traveled = []
+        self.list_mean10_x = []
         self.list_loss = []
 
         self.canvas = FigureCanvasTkAgg(self.fig, master=self.root)
@@ -245,10 +246,9 @@ class PlotCurves:
         self.list_distance_traveled.append(distance_traveled)
         self.list_loss.append(training_stats.loss)
 
-        if len(self.list_distance_traveled) > 10:
-            self.list_mean10_distance_traveled.append(sum(self.list_distance_traveled[-10:]) / 10)
-        else:
-            self.list_mean10_distance_traveled.append(sum(self.list_distance_traveled) / len(self.list_distance_traveled))
+        if self.list_epoch[-1] % 20 == 0:
+            self.list_mean10_distance_traveled.append(sum(self.list_distance_traveled[-20:]) / 20)
+            self.list_mean10_x.append(self.list_epoch[-1])
 
         self.update_plot()
 
@@ -260,7 +260,7 @@ class PlotCurves:
         self.graph_distances.set_ylabel('Distance')
         self.graph_distances.set_yscale('linear')
         self.graph_distances.plot(self.list_epoch, self.list_distance_traveled)
-        self.graph_distances.plot(self.list_epoch, self.list_mean10_distance_traveled, 'go')
+        self.graph_distances.plot(self.list_mean10_x, self.list_mean10_distance_traveled, 'go')
         self.graph_distances.set_ylim(ymin=0)
         self.graph_distances.text(len(self.list_distance_traveled)-1, self.list_distance_traveled[-1], str(int(self.list_distance_traveled[-1])))
 

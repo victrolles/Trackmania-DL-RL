@@ -26,10 +26,12 @@ class SimulationRewards:
         reward += int(speed/20)
         if speed < 5:
             reward -= 3
+        elif speed > 120:
+            reward -= 1
+        elif speed > 80:
+            reward += 5
         elif speed > 40:
             reward += 3
-        elif speed > 60:
-            reward += 5
         else:
             reward += 1
         
@@ -79,7 +81,7 @@ class SimulationRewards:
         # --- get DONE ---
 
         # Restart if too long
-        if time.time() - start_simulation_time > 30:
+        if time.time() - start_simulation_time > 40:
             # print(time.time() - self.start_simulation_time)
             print("Step restarted : Car is too slow", flush=True)
             game_over = True
