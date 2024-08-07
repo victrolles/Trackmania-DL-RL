@@ -35,16 +35,17 @@ from extras.tests.utils import get_list_point_middle_line, get_road_sections, ge
 #         'time'
 #     ))
 
-class Agent:
+class YoshAgent:
 
-    def __init__(self, track_name: str) -> None:
+    def __init__(self) -> None:
+        pass
 
-        # Get Track informations
-        self.list_point_middle_line = get_list_point_middle_line(track_name)
-        self.road_sections = get_road_sections(track_name)
+        # # Get Track informations
+        # self.list_point_middle_line = get_list_point_middle_line(track_name)
+        # self.road_sections = get_road_sections(track_name)
 
-        # Initialize the list of speed and time
-        self.list_speed_time = []
+        # # Initialize the list of speed and time
+        # self.list_speed_time = []
     
     # def get_state(self, iface_state, game_time) -> State:
 
@@ -155,13 +156,13 @@ class Agent:
     #     action = action.item()  # Convert to Python int
     #     return action
 
-    def get_action(self, model_network, state, epsilon, device):
-        # Espilon-Greedy: tradeoff exploration / exploitation
-        if np.random.random() < epsilon.value:
-            move = np.random.randint(0, 5)
-        else:
-            state0 = torch.tensor(state, dtype=torch.float, device=device)
-            prediction = model_network(state0)
-            move = torch.argmax(prediction).item()
+    # def get_action(self, model_network, state, epsilon, device):
+    #     # Espilon-Greedy: tradeoff exploration / exploitation
+    #     if np.random.random() < epsilon.value:
+    #         move = np.random.randint(0, 5)
+    #     else:
+    #         state0 = torch.tensor(state, dtype=torch.float, device=device)
+    #         prediction = model_network(state0)
+    #         move = torch.argmax(prediction).item()
 
-        return move
+    #     return move

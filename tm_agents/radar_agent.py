@@ -1,7 +1,7 @@
 import numpy as np
 import torch
 
-from librairies.data_classes import RadarState, Point2D
+from librairies.data_classes import RadarState, Point2D, AgentConfig
 from librairies.tm_math_functions import point_ahead, closest_intersection, get_road_points
 from librairies.dictionaries import Rd
 
@@ -9,7 +9,8 @@ class RadarAgent:
 
     def __init__(self) -> None:
 
-        self.input_nbr = 10
+        self.agent_config = AgentConfig("Radar",
+                                        10)
         
         self.left_border_points = get_road_points(Rd.LEFT, True)
         self.right_border_points = get_road_points(Rd.RIGHT, True)

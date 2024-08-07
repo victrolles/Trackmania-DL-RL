@@ -1,26 +1,29 @@
 import time
+import datetime
+import os
 
 import torch
 import torch.nn as nn
 import torch.optim as optim
 
-from librairies.globals import LR, GAMMA, BATCH_SIZE, SYNC_TARGET_RATE, EPSILON_START, EPSILON_END, EPSILON_DECAY, LOAD_SAVED_MODEL, TRACK_NAME
-from librairies.data_classes import TrainingStats
+from librairies.globals import LR, GAMMA, BATCH_SIZE, SYNC_TARGET_RATE, EPSILON_START, EPSILON_END, EPSILON_DECAY, LOAD_SAVED_MODEL, TRACK_NAME, HIDDEN_LAYER_SIZE, OUTPUT_SIZE
+from librairies.data_classes import TrainingStats, AgentConfig
 
 from rl_algorithms.dqn.dqn_model import DQNModel
 from rl_algorithms.experience_buffer import ExperienceBuffer
 
 class DQNTrainer:
 
-    def __init__(self, experience_buffer: ExperienceBuffer, device):
+    def __init__(self, experience_buffer: ExperienceBuffer, device, agent_config: AgentConfig) -> None:
 
         # Device
+        self.name = "DQN"
         self.device = device
         self.stop_training = False
         
         # Model
-        self.model_network = DQNModel(10, 128, 5).to(self.device)
-        self.model_target_network = DQNModel(10, 128, 5).to(self.device)
+        self.model_network = DQNModel(agent_config.input_size, HIDDEN_LAYER_SIZE, OUTPUT_SIZE).to(self.device)
+        self.model_target_network = DQNModel(agent_config.input_size, HIDDEN_LAYER_SIZE, OUTPUT_SIZE).to(self.device)
 
         self.optimizer = optim.Adam(self.model_network.parameters(), lr=LR)
         self.criterion = nn.MSELoss()
@@ -39,7 +42,10 @@ class DQNTrainer:
         self.loss_value = 0
         self.training_time = 0
 
-        # Training parameters
+        # Create a new folder for saving models
+        self.save_dir = f"extras/maps/{TRACK_NAME}/saves/{datetime.datetime.now().strftime("%d-%m-%y-%H-%M")}_{self.name}_{agent_config.name}Agent"
+        os.makedirs(self.save_dir, exist_ok=True)
+        print(f"Created directory: {self.save_dir}")
         
 
     def train_model(self) -> TrainingStats:
@@ -107,14 +113,15 @@ class DQNTrainer:
             self.model_target_network.load_state_dict(self.model_network.state_dict())
 
     def save_model(self):
+        save_path = os.path.join(self.save_dir, f"model_{self.epoch}.pth")
         torch.save({
             'model_network_state_dict': self.model_network.state_dict(),
             'model_target_network_state_dict': self.model_target_network.state_dict(),
             'optimizer_state_dict': self.optimizer.state_dict(),
             'epoch': self.epoch,
-            'trainig_time': self.training_time
-        }, f'extras/maps/{TRACK_NAME}/saves/model.pth')
-        print("Models correctly saved")
+            'training_time': self.training_time
+        }, save_path)
+        print(f"Models correctly saved at epoch {self.epoch}")
 
     def load_model(self):
         checkpoint = torch.load(f'extras/maps/{TRACK_NAME}/saves/model.pth')

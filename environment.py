@@ -56,28 +56,13 @@ class Environment(Client):
         self.has_respawned = False
         self.has_get_start_dist = False
         self.is_track_finished = False
-        self.current_game_speed = INITIAL_GAME_SPEED
-        self.is_random_spawn.value = RANDOM_SPAWN
         self.training_stats = None
         self.middle_points = get_road_points(Rd.MIDDLE, True)
         self.start_total_time = time.time()
-        
-
-        
-        # list_points_left_border = pd.read_csv(f'extras/maps/{TRACK_NAME}/road_left.csv')
-        # list_points_right_border = pd.read_csv(f'extras/maps/{TRACK_NAME}/road_right.csv')
-        # list_points_left_border = list_points_left_border.iloc[::20]
-        # list_points_right_border = list_points_right_border.iloc[::20]
-        # self.list_points_left_border = list(zip(list_points_left_border.x_values, list_points_left_border.y_values))
-        # self.list_points_right_border = list(zip(list_points_right_border.x_values, list_points_right_border.y_values))
-        # print("size left: ", len(self.list_points_left_border))
-        # print("size right: ", len(self.list_points_right_border))
-        # self.list_points_middle_line = get_list_point_middle_line()
-        # self.road_sections = get_road_sections()
 
         self.experience_buffer = ExperienceBuffer(BUFFER_SIZE)
         self.agent = RadarAgent()
-        self.dqn_trainer = DQNTrainer(self.experience_buffer, self.device)
+        self.dqn_trainer = DQNTrainer(self.experience_buffer, self.device, self.agent.agent_config)
         self.tm_simulation = SimulationRewards(self.is_track_finished)
         
 
@@ -85,8 +70,7 @@ class Environment(Client):
     def on_registered(self, iface: TMInterface) -> None:
         print(f'Registered to {iface.server_name}', flush=True)
 
-        iface.set_speed(self.current_game_speed)
-        self.tm_speed.value = self.current_game_speed
+        iface.set_speed(self.tm_speed.value)
 
         iface.set_timeout(20_000)
         iface.give_up()
@@ -188,6 +172,9 @@ class Environment(Client):
 
                     if not self.is_random_spawn.value:
                         self.start_dist_to_finish_line = TRACK_LENGTH
+                    else:
+                        self.has_respawned = True
+                        self.has_get_start_dist = True
 
                     dist = self.start_dist_to_finish_line - self.dist_to_finish_line
 
@@ -202,10 +189,7 @@ class Environment(Client):
                     iface.give_up()
 
                     self.start_simulation_time = time.time()
-
-                    if self.is_random_spawn.value:
-                        self.has_respawned = True
-                        self.has_get_start_dist = True
+                        
 
     def stop_env_process(self, iface: TMInterface) -> None:
         # Close the connection to Trackmania
@@ -216,7 +200,6 @@ class Environment(Client):
         exit()
 
     def change_tm_speed(self, iface: TMInterface) -> None:
-        self.current_game_speed = self.tm_speed.value
         iface.set_speed(self.tm_speed.value)
         self.is_tm_speed_changed.value = False
 

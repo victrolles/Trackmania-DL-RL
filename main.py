@@ -1,6 +1,6 @@
 import torch.multiprocessing as mp
 
-from librairies.globals import BUFFER_SIZE
+from librairies.globals import BUFFER_SIZE, RANDOM_SPAWN, TRAINING, INITIAL_GAME_SPEED
 from environment import start_env
 from graphic import Graphic
 
@@ -11,13 +11,13 @@ def main():
 
     # controllers
     end_processes = mp.Value('b', False)
-    tm_speed = mp.Value('f', 1.0)
+    tm_speed = mp.Value('f', INITIAL_GAME_SPEED)
     is_tm_speed_changed = mp.Value('b', False)
-    is_training = mp.Value('b', True)
+    is_training = mp.Value('b', TRAINING)
     is_model_saved = mp.Value('b', False)
     is_map_render = mp.Value('b', True)
     is_curves_render = mp.Value('b', True)
-    is_random_spawn = mp.Value('b', True)
+    is_random_spawn = mp.Value('b', RANDOM_SPAWN)
 
     ## Processes
 

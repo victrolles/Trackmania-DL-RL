@@ -48,6 +48,11 @@ class DetectedPoint:
     dist: float
 
 @dataclass
+class AgentConfig:
+    name: str
+    input_size: int
+
+@dataclass
 class RadarState:
     car_pos: Point2D
     car_ahead_pos: Point2D

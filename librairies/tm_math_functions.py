@@ -68,117 +68,12 @@ def distance_to_finish_line(car_pos: Point2D, closest_point: Point2D, middle_poi
 
     return dist_to_finish_line
 
-
-    # Initialize the minimum distance to a high value
-    # min_distance = 1000
-    # closest_point = None
-    # previous_closest_point = None
-    
-        # dist_to_finish_line = 0
-
-        # road_section_found = False
-        # in_section_dist_calculated = False
-
-    # Loop over all the points on the middle line to find the CLOSEST POINT OF THE CENTERLINE TO THE CAR
-    # closest_point = get_closest_point(car_pos, list_points_on_middle_line)
-    # for idx, point in enumerate(list_points_on_middle_line[1:]):
-    #     distance = math.sqrt((car_pos.x - point[0])**2 + (car_pos.y - point[1])**2)
-
-    #     # If the distance is longer than minimum distance, we can stop searching
-    #     # because we reach the closest point and we are now going away from it
-    #     if (distance > 1.05 * min_distance) and (min_distance < 12.0):
-    #         break
-
-    #     if distance < min_distance:
-    #         min_distance = distance
-    #         min_point = point
-
-    # idx_point = list_points_on_middle_line.index(min_point)
-    # if idx_point == 0:
-    #     previous_point = list_points_on_middle_line[1]
-    # else:
-    #     previous_point = list_points_on_middle_line[idx_point - 1]
-
-    # min_point_point2D = Point2D(min_point[0], min_point[1])
-    # previous_point_point2D = Point2D(previous_point[0], previous_point[1])
-
-    # if extra_infos:
-
-    #     # Distance car to line
-    #     distance_to_line = distance_point_to_line(car_pos, previous_closest_point, closest_point)
-
-    #     # Get angle between the car direction and the direction of the track
-    #     angle = angle_between_lines(previous_closest_point, closest_point, car_pos, car_ahead)
-
-    # else:
-    #     distance_to_line = 0
-    #     angle = 0
-
-    # Get the road section where the car is located
-    # for idx, road_section in enumerate(road_sections):
-
-    #     if road_section_found and in_section_dist_calculated:
-    #         section_point = Point2D(road_sections[idx]["next_turn_point"][0], road_sections[idx]["next_turn_point"][1])
-    #         previous_section_point = Point2D(road_sections[idx-1]["next_turn_point"][0], road_sections[idx-1]["next_turn_point"][1])
-        #     dist_to_finish_line += previous_section_point.distance(section_point)
-        #     x_section = road_sections[idx]["next_turn_point"][0]
-        #     y_section = road_sections[idx]["next_turn_point"][1]
-        #     x_previous_section = road_sections[idx-1]["next_turn_point"][0]
-        #     y_previous_section = road_sections[idx-1]["next_turn_point"][1]
-        #     dist_to_finish_line += math.sqrt((x_previous_section - x_section)**2 + (y_previous_section - y_section)**2)
-
-        # elif road_section_found:
-        #     section_point = Point2D(road_section["next_turn_point"][0], road_section["next_turn_point"][1])
-        #     dist_to_finish_line = closest_point.distance(section_point)
-        #     x_section = road_section["next_turn_point"][0]
-        #     y_section = road_section["next_turn_point"][1]
-        #     dist_to_finish_line = math.sqrt((closest_point.x - x_section)**2 + (closest_point.y - y_section)**2)
-        #     in_section_dist_calculated = True
-
-        # elif closest_point.to_list() in road_section["list_middle_points"]:
-        #     road_section_found = True
-
-    # Check if the section is found and if the distance is calculated
-            
-    # Get the distance to the finish line
-    # if road_section_found and not in_section_dist_calculated:
-    #     print("road_section_error", flush=True)
-    #     section_point = Point2D(road_sections[-1]["next_turn_point"][0], road_sections[-1]["next_turn_point"][1])
-    #     # x_section = road_sections[-1]["next_turn_point"][0]
-    #     # y_section = road_sections[-1]["next_turn_point"][1]
-    #     dist_to_finish_line += closest_point.distance(section_point)
-
-    # # If the car is not on a road section, return an error
-    # elif not road_section_found:
-    #     raise Exception("The road section was not found")
-
-    # return dist_to_finish_line
-
 def get_road_sections():
-    # Read the json file that contains the road sections of the track
-    ## Coordinates of turns, straight lines, etc.
-    ## Direction of turns, straight lines, etc.
-    ## list of points on the middle line of the track related to each road section
     path_to_json = f'extras/maps/{TRACK_NAME}/dict.json'
     with open(path_to_json, "r") as json_file:
         file_data  = json.load(json_file)
 
     return file_data["road_sections"]
-
-# def get_list_points_left_side_road():
-#     list_points_left_border = pd.read_csv(f'extras/maps/{TRACK_NAME}/road_left.csv')
-#     return list_points_left_border.iloc[::20]
-
-# def get_list_points_right_side_road():
-#     list_points_right_border = pd.read_csv(f'extras/maps/{TRACK_NAME}/road_right.csv')
-#     return list_points_right_border.iloc[::20]
-
-# # Get the list of points on the middle line of the track
-# def get_list_point_middle_line():
-#     # Read the csv file that contains the points on the middle line of the track
-#     path_to_csv = f'extras/maps/{TRACK_NAME}/road_middle.csv'
-#     df_points_on_middle_line = pd.read_csv(path_to_csv)
-#     return list(zip(df_points_on_middle_line.x_values, df_points_on_middle_line.y_values))
 
 def get_road_df(road_side: Rd, shorter_list: bool = False) -> pd.DataFrame:
     path_to_csv = f'extras/maps/{TRACK_NAME}/road_{road_side.value}.csv'
