@@ -4,7 +4,6 @@ import numpy as np
 import pandas as pd
 
 from librairies.data_classes import Point2D, DetectedPoint
-from librairies.globals import TRACK_NAME
 from librairies.dictionaries import Rd
 
 def delta_time_to_str(delta_time: float) -> str:
@@ -68,15 +67,15 @@ def distance_to_finish_line(car_pos: Point2D, closest_point: Point2D, middle_poi
 
     return dist_to_finish_line
 
-def get_road_sections():
-    path_to_json = f'extras/maps/{TRACK_NAME}/dict.json'
+def get_road_sections(track_name: str):
+    path_to_json = f'extras/maps/{track_name}/dict.json'
     with open(path_to_json, "r") as json_file:
         file_data  = json.load(json_file)
 
     return file_data["road_sections"]
 
-def get_road_df(road_side: Rd, shorter_list: bool = False) -> pd.DataFrame:
-    path_to_csv = f'extras/maps/{TRACK_NAME}/road_{road_side.value}.csv'
+def get_road_df(track_name: str, road_side: Rd, shorter_list: bool = False) -> pd.DataFrame:
+    path_to_csv = f'extras/maps/{track_name}/road_{road_side.value}.csv'
     df = pd.read_csv(path_to_csv)
 
     if shorter_list:
@@ -84,8 +83,8 @@ def get_road_df(road_side: Rd, shorter_list: bool = False) -> pd.DataFrame:
 
     return df
 
-def get_road_points(road_side: Rd, shorter_list: bool = False, print_size: bool = False) -> list[Point2D]:
-    path_to_csv = f'extras/maps/{TRACK_NAME}/road_{road_side.value}.csv'
+def get_road_points(track_name: str, road_side: Rd, shorter_list: bool = False, print_size: bool = False) -> list[Point2D]:
+    path_to_csv = f'extras/maps/{track_name}/road_{road_side.value}.csv'
 
     # Read the CSV file
     df = pd.read_csv(path_to_csv)

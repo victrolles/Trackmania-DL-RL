@@ -1,19 +1,20 @@
 import numpy as np
 import torch
 
-from librairies.data_classes import RadarState, Point2D, AgentConfig
+from librairies.data_classes import RadarState, Point2D
 from librairies.tm_math_functions import point_ahead, closest_intersection, get_road_points
 from librairies.dictionaries import Rd
+from config import Config
 
 class RadarAgent:
 
-    def __init__(self) -> None:
+    def __init__(self, config: Config) -> None:
 
-        self.agent_config = AgentConfig("Radar",
-                                        10)
+        self.name = "Radar"
+        self.input_size = 10
         
-        self.left_border_points = get_road_points(Rd.LEFT, True)
-        self.right_border_points = get_road_points(Rd.RIGHT, True)
+        self.left_border_points = get_road_points(config.environment.name, Rd.LEFT, True)
+        self.right_border_points = get_road_points(config.environment.name, Rd.RIGHT, True)
 
     def get_state(self, iface_state) -> RadarState:
         

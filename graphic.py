@@ -9,6 +9,8 @@ from librairies.data_classes import DataBus, TrainingStats, RadarState
 from librairies.tm_math_functions import delta_time_to_str, get_road_df
 from librairies.dictionaries import Rd
 
+from config import Config
+
 class Graphic:
     def __init__(self,
                  databus_buffer: DataBus,
@@ -35,6 +37,9 @@ class Graphic:
         self.is_curves_render = is_curves_render
         self.is_tm_speed_changed = is_tm_speed_changed
         self.is_random_spawn = is_random_spawn
+
+        ## Config
+        self.config = Config()
 
         self.iter = 0
         self.start_time = time.time()
@@ -97,7 +102,7 @@ class Graphic:
     def init_canvas(self):
         # canvas
         ## plots:
-        self.plot_map = PlotMap(self.root)
+        self.plot_map = PlotMap(self.root, self.config)
         self.plot_curves = PlotCurves(self.root)
 
         ## stats:
@@ -212,7 +217,7 @@ class Graphic:
         self.label_total_time.config(text=f"Total Time: {delta_time_to_str(total_time)}")
 
     def update_training_stats(self, training_stats: TrainingStats):
-        self.label_training_time.config(text=f"Training Time: {delta_time_to_str(training_stats.training_time)}")
+        # self.label_training_time.config(text=f"Training Time: {delta_time_to_str(training_stats.training_time)}")
         self.label_epoch.config(text=f"Epoch: {training_stats.epoch}")
         self.label_step.config(text=f"Step: {training_stats.step}")
         self.label_epsilon.config(text=f"Epsilon: {training_stats.epsilon:.3f}")
@@ -278,12 +283,12 @@ class PlotCurves:
         self.canvas.flush_events()
 
 class PlotMap:
-    def __init__(self, root):
+    def __init__(self, root, config: Config) -> None:
         self.root = root
 
         
-        self.left_border_df = get_road_df(Rd.LEFT, True)
-        self.right_border_df = get_road_df(Rd.RIGHT, True)
+        self.left_border_df = get_road_df(config.environment.name, Rd.LEFT, True)
+        self.right_border_df = get_road_df(config.environment.name, Rd.RIGHT, True)
 
         self.fig, self.map = plt.subplots(figsize=(4, 6))
         self.fig.suptitle('Training Curves')

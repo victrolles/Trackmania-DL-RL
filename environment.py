@@ -4,12 +4,12 @@ import time
 from tminterface.interface import TMInterface
 from tminterface.client import Client, run_client
 import torch
-import numpy as np
 
-from librairies.data_classes import Point2D, DataBus, Exp
-from librairies.globals import TRACK_LENGTH, BUFFER_SIZE, FRAME_COOLDOWN_ACTION, FRAME_COOLDOWN_DISPLAY_STATE, FRAME_COOLDOWN_DISPLAY_STATS, INITIAL_GAME_SPEED, RANDOM_SPAWN, SPAWN_NUMBER, SAVE_MODELS_RATE
+from librairies.data_classes import DataBus, Exp
 from librairies.dictionaries import INPUT, Rd
-from librairies.tm_math_functions import get_road_points, get_closest_point, distance_to_finish_line
+from librairies.tm_math_functions import get_road_points
+from librairies.timer import Timer
+from librairies.tm_respawn import TMRandomRespawn
 
 from tm_agents.radar_agent import RadarAgent
 
@@ -17,6 +17,8 @@ from rl_algorithms.dqn.dqn_trainer import DQNTrainer
 from rl_algorithms.experience_buffer import ExperienceBuffer
 
 from tm_rewards.simulation_rewards import SimulationRewards
+
+from config import Config
 
 class Environment(Client):
     def __init__(self,
@@ -44,25 +46,41 @@ class Environment(Client):
         self.is_tm_speed_changed = is_tm_speed_changed
         self.is_random_spawn = is_random_spawn
 
+        ## Device
         self.device = 'cuda' if torch.cuda.is_available() else 'cpu'
-        self.iter = 0
-        
-        self.dist_to_finish_line = 0
-        self.start_dist_to_finish_line = 0
-        self.previous_state = None
-        self.previous_action = None
-        self.previous_tm_simulation_result = None
-        self.start_simulation_time = time.time()
-        self.has_respawned = False
-        self.has_get_start_dist = False
-        self.is_track_finished = False
-        self.training_stats = None
-        self.middle_points = get_road_points(Rd.MIDDLE, True)
-        self.start_total_time = time.time()
 
-        self.experience_buffer = ExperienceBuffer(BUFFER_SIZE)
-        self.agent = RadarAgent()
-        self.dqn_trainer = DQNTrainer(self.experience_buffer, self.device, self.agent.agent_config)
+        ## Config
+        self.config = Config()
+        self.tm_speed.value = self.config.environment.game_speed
+        self.is_training.value = self.config.traininig
+        self.is_random_spawn.value = self.config.spawn_config.random
+
+        ## Road points
+        self.middle_points = get_road_points(Rd.MIDDLE, True)
+
+        ## TM Data
+        self.iter = 0
+        self.start_dist_to_finish_line = 0
+        self.is_track_finished = False
+        self.tm_rr = TMRandomRespawn(self.config.spawn_config, self.middle_points)
+
+        ## Experience from previous state
+        self.previous_exp = Exp.set_none()
+
+        ## Timers
+        self.simulation_timer = Timer("Simulation")
+        self.timer = Timer("Global")
+        self.training_timer = Timer("Training")
+
+        self.timer.start()
+        self.simulation_timer.start()
+        self.training_timer.start()
+        self.training_timer.pause()
+
+        ## Reinforcement Learning Classes
+        self.experience_buffer = ExperienceBuffer(self.config.exp_buffer_config.buffer_size)
+        self.agent = RadarAgent(self.config)
+        self.dqn_trainer = DQNTrainer(self.config.rl_config, self.experience_buffer, self.agent.input_size, self.device)
         self.tm_simulation = SimulationRewards(self.is_track_finished)
         
 
@@ -87,20 +105,11 @@ class Environment(Client):
         if _time >= 0:
             self.iter += 1
 
-            if self.has_respawned and _time > 100 and _time < 1000 :
-                self.has_respawned = False
-                random_int = np.random.randint(0, SPAWN_NUMBER)
-                string = f"load_state checkpoint_{random_int}.bin"
-                iface.execute_command(string)
-                
-
-            if not self.has_respawned and self.has_get_start_dist and _time > 300 :
-                self.has_get_start_dist = False
-                iface_state = iface.get_simulation_state()
-                car_pos = Point2D(iface_state.position[0], iface_state.position[2])
-                self.start_dist_to_finish_line = distance_to_finish_line(car_pos, get_closest_point(car_pos, self.middle_points), self.middle_points)
-
-            if self.iter % FRAME_COOLDOWN_ACTION == 0:
+            # ---- Random Respawn ----
+            self.tm_rr.respawn(iface, _time)
+            
+            # ---- Simulation ----
+            if self.iter % self.config.cooldown_config.action == 0:
 
                 # ===== Stop the process if needed =====
                 if self.end_processes.value:
@@ -111,9 +120,8 @@ class Environment(Client):
                     self.change_tm_speed(iface)
 
                 # ===== Save the model if needed =====
-                if self.saving_model.value:
-                    if self.iter % SAVE_MODELS_RATE == 0:
-                        self.save_model()
+                if self.saving_model.value or self.iter % self.config.rl_config.sync_save_rate == 0:
+                    self.save_model()
 
                 iface_state = iface.get_simulation_state()
                 
@@ -123,7 +131,7 @@ class Environment(Client):
 
                 # ===== Get the TM simulation result =====
                 tm_simulation_result = self.tm_simulation.get_TM_simulation_result(iface_state, state.car_pos, state.car_ahead_pos, self.start_simulation_time)
-                self.dist_to_finish_line = tm_simulation_result.dist_to_finish_line
+                dist_to_finish_line = tm_simulation_result.dist_to_finish_line
 
                 # print(f"Reward: {tm_simulation_result.reward}", flush=True)
 
@@ -156,39 +164,40 @@ class Environment(Client):
                     # print(self.previous_action, flush=True)
                     iface.set_input_state(**INPUT[self.previous_action])
 
-                if self.iter % FRAME_COOLDOWN_DISPLAY_STATE == 0 and self.is_map_render.value:
+                if self.iter % self.config.cooldown_config.display_state == 0 and self.is_map_render.value:
                     self.databus_buffer.put(DataBus(state,
                                                     None,
-                                                    time.time() - self.start_total_time,
+                                                    self.timer.get_time(),
                                                     0,
-                                                    self.iter/(time.time() - self.start_total_time),
+                                                    self.iter/self.timer.get_time(),
                                                     len(self.experience_buffer)))
 
                 # ===== Update the model if game over =====
                 if tm_simulation_result.done and len(self.experience_buffer) > 0:
+                    self.simulation_timer.pause()
                     iface.give_up()
 
-                    self.training_stats = self.dqn_trainer.train_model()
+                    self.training_timer.resume()
+                    training_stats = self.dqn_trainer.train_model()
+                    self.training_timer.pause()
 
                     if not self.is_random_spawn.value:
-                        self.start_dist_to_finish_line = TRACK_LENGTH
+                        self.start_dist_to_finish_line = self.config.environment.length
                     else:
-                        self.has_respawned = True
-                        self.has_get_start_dist = True
+                        self.tm_rr.set_random_spawn()
 
-                    dist = self.start_dist_to_finish_line - self.dist_to_finish_line
+                    dist = self.start_dist_to_finish_line - dist_to_finish_line
 
-                    if self.iter % FRAME_COOLDOWN_DISPLAY_STATS == 0 and self.is_curves_render.value:
+                    if self.iter % self.config.cooldown_config.display_stats == 0 and self.is_curves_render.value:
                         self.databus_buffer.put(DataBus(None,
-                                                        self.training_stats,
-                                                        time.time() - self.start_total_time,
+                                                        training_stats,
+                                                        self.timer.get_time(),
                                                         dist,
-                                                        self.iter/(time.time() - self.start_total_time),
+                                                        self.iter/self.timer.get_time(),
                                                         len(self.experience_buffer)))
                     
                     iface.give_up()
-
-                    self.start_simulation_time = time.time()
+                    self.simulation_timer.resume()
                         
 
     def stop_env_process(self, iface: TMInterface) -> None:
