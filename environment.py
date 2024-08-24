@@ -56,7 +56,7 @@ class Environment(Client):
         self.config = Config()
         if self.config.rl_config.load_checkpoint:
             self.checkpoint = torch.load(self.config.rl_config.load_checkpoint_path)
-            self.config = self.checkpoint['config']
+            # self.config = self.checkpoint['config']
 
         self.tm_speed.value = self.config.environment.game_speed
         self.is_training.value = self.config.rl_config.traininig
@@ -153,7 +153,7 @@ class Environment(Client):
                     self.change_tm_speed(iface)
 
                 # ===== Save the model if needed =====
-                if self.saving_model.value or (self.dqn_trainer.epoch % self.config.rl_config.sync_save_rate == 0 and self.dqn_trainer.epoch != 0):
+                if self.saving_model.value or (self.dqn_trainer.epoch % self.config.rl_config.sync_save_rate == 0 and self.dqn_trainer.epoch != self.dqn_trainer.prev_epoch):
                     self.make_checkpoint()
 
                 iface_state = iface.get_simulation_state()

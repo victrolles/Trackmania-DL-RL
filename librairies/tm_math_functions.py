@@ -8,8 +8,8 @@ from librairies.dictionaries import Rd
 
 def delta_time_to_str(delta_time: float) -> str:
 
-    hour = int(delta_time / 3600)
-    minute = int(delta_time / 60)
+    hour = int(delta_time // 3600)
+    minute = int((delta_time % 3600) // 60)
     seconde = int(delta_time % 60)
 
     if hour > 0:

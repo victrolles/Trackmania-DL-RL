@@ -30,6 +30,7 @@ class DQNTrainer:
         # Training states
         self.epsilon = self.rl_config.epsilon.start
         self.epoch = 0
+        self.prev_epoch = 0
         self.step = 0
         self.loss_value = 0.0
 
@@ -87,7 +88,7 @@ class DQNTrainer:
         self.optimizer.step()
 
     def update_epsilon(self):
-        self.epsilon = max(self.rl_config.epsilon.end, self.rl_config.epsilon.start - self.epoch * self.rl_config.epsilon.decay)
+        self.epsilon = max(self.rl_config.epsilon.end, self.rl_config.epsilon.start - (self.epoch - self.prev_epoch) * self.rl_config.epsilon.decay)
 
     def sync_target_network(self):
         if self.epoch % self.rl_config.sync_target_rate == 0:
@@ -110,6 +111,7 @@ class DQNTrainer:
         self.optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
 
         self.epoch = checkpoint['epoch']
+        self.prev_epoch = checkpoint['epoch']
         self.epsilon = checkpoint['epsilon']
 
         self.model_network.eval()

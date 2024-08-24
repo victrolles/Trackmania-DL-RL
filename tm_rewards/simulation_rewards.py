@@ -28,7 +28,9 @@ class SimulationRewards:
         if speed < 5:
             reward -= 3
         elif speed > 120:
-            reward -= 1
+            reward -= 3
+        elif speed > 100:
+            reward -= 2
         elif speed > 80:
             reward += 5
         elif speed > 40:

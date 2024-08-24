@@ -7,8 +7,8 @@ class Config:
         rl_algo='DQN',
         traininig=True,
         load_checkpoint=True,
-        load_checkpoint_path='extras/maps/snake_map_training/saves/24-08-24-08-19_DQN_RadarAgent/model_41.pth',
-        lr=1e-4,
+        load_checkpoint_path='extras/maps/snake_map_training/saves/24-08-24-09-52_DQN_RadarAgent/model_3200.pth',
+        lr=1e-3, #1e-4
         gamma=0.995,
         hidden_layer_size=128,
         output_size=5,
@@ -18,7 +18,7 @@ class Config:
         epsilon=EpsilonConfig(
             start=1.0,
             end=0.01,
-            decay=0.0005
+            decay=0.001
         )
     )
     
