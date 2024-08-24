@@ -1,16 +1,13 @@
-from dataclasses import dataclass
 from librairies.data_classes import EnvironmentConfig, EpsilonConfig, RLConfig, CooldownConfig, SpawnConfig, AgentConfig, ExpBufferConfig
 
-@dataclass
 class Config:
-
-    # Environment
-    traininig: bool = True
-    load_model: bool = True
 
     # RL Trainer
     rl_config: RLConfig = RLConfig(
         rl_algo='DQN',
+        traininig=True,
+        load_checkpoint=True,
+        load_checkpoint_path='extras/maps/snake_map_training/saves/24-08-24-08-19_DQN_RadarAgent/model_41.pth',
         lr=1e-4,
         gamma=0.995,
         hidden_layer_size=128,
@@ -27,18 +24,19 @@ class Config:
     
     # Agent
     agent_config: AgentConfig = AgentConfig(
+        name='Radar',
         max_dist_radar=100.0
     )
 
     # Environment
     environment: EnvironmentConfig = EnvironmentConfig(
         name='snake_map_training',
-        length=1103.422,
+        length=1257.32,
         game_speed=1.0)
     
     # Spawn
     spawn_config: SpawnConfig = SpawnConfig(   
-        random=False,
+        random=True,
         number=61
     )
     

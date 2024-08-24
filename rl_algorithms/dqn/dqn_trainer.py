@@ -1,7 +1,3 @@
-import time
-import datetime
-import os
-
 import torch
 import torch.nn as nn
 import torch.optim as optim
@@ -28,25 +24,14 @@ class DQNTrainer:
         self.optimizer = optim.Adam(self.model_network.parameters(), lr=self.rl_config.lr)
         self.criterion = nn.MSELoss()
 
-        # if LOAD_SAVED_MODEL:
-        #     self.load_model()
-            
-
         # Experience buffer : shared memory
         self.experience_buffer = experience_buffer
 
         # Training states
-        self.epsilon = self.rl_config.
+        self.epsilon = self.rl_config.epsilon.start
         self.epoch = 0
         self.step = 0
-        self.loss_value = 0
-        self.training_time = 0
-
-        # # Create a new folder for saving models
-        # self.save_dir = f"extras/maps/{TRACK_NAME}/saves/{datetime.datetime.now().strftime("%d-%m-%y-%H-%M")}_{self.name}_{agent_config.name}Agent"
-        # os.makedirs(self.save_dir, exist_ok=True)
-        # print(f"Created directory: {self.save_dir}")
-        
+        self.loss_value = 0.0
 
     def train_model(self) -> TrainingStats:
     
@@ -108,26 +93,26 @@ class DQNTrainer:
         if self.epoch % self.rl_config.sync_target_rate == 0:
             self.model_target_network.load_state_dict(self.model_network.state_dict())
 
-    # def save_model(self):
-    #     save_path = os.path.join(self.save_dir, f"model_{self.epoch}.pth")
-    #     torch.save({
-    #         'model_network_state_dict': self.model_network.state_dict(),
-    #         'model_target_network_state_dict': self.model_target_network.state_dict(),
-    #         'optimizer_state_dict': self.optimizer.state_dict(),
-    #         'epoch': self.epoch,
-    #         'training_time': self.training_time
-    #     }, save_path)
-    #     print(f"Models correctly saved at epoch {self.epoch}")
+    def save_model(self) -> dict:
+        checkpoint = {
+            'epoch': self.epoch,
+            'epsilon': self.epsilon,
+            'model_network_state_dict': self.model_network.state_dict(),
+            'model_target_network_state_dict': self.model_target_network.state_dict(),
+            'optimizer_state_dict': self.optimizer.state_dict()
+        }
 
-    # def load_model(self):
-    #     checkpoint = torch.load(f'extras/maps/{TRACK_NAME}/saves/model.pth')
-    #     self.model_network.load_state_dict(checkpoint['model_network_state_dict'])
-    #     self.model_target_network.load_state_dict(checkpoint['model_target_network_state_dict'])
-    #     self.optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
-    #     self.epoch = checkpoint['epoch']
-    #     self.training_time = checkpoint['trainig_time']
+        return checkpoint
 
-    #     self.model_network.eval()
-    #     self.model_target_network.eval()
+    def load_model(self, checkpoint):
+        self.model_network.load_state_dict(checkpoint['model_network_state_dict'])
+        self.model_target_network.load_state_dict(checkpoint['model_target_network_state_dict'])
+        self.optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
 
-    #     print("Models correctly loaded")
+        self.epoch = checkpoint['epoch']
+        self.epsilon = checkpoint['epsilon']
+
+        self.model_network.eval()
+        self.model_target_network.eval()
+
+        print(f"Models correctly loaded at epoch {self.epoch}")

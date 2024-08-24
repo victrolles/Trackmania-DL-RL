@@ -1,5 +1,37 @@
 import time
 
+class Timers:
+    
+        def __init__(self):
+            self.timers = {}
+    
+        def add_timer(self, name: str):
+            self.timers[name] = Timer(name)
+    
+        def start(self, name: str):
+            self.timers[name].start()
+    
+        def stop(self, name: str):
+            self.timers[name].stop()
+    
+        def pause(self, name: str):
+            self.timers[name].pause()
+    
+        def resume(self, name: str):
+            self.timers[name].resume()
+    
+        def get_time(self, name: str) -> float:
+            return self.timers[name].get_time()
+    
+        def get_string_time(self, name: str) -> str:
+            return self.timers[name].get_string_time()
+    
+        def __str__(self):
+            string = ""
+            for timer in self.timers.values():
+                string += str(timer) + "\n"
+            return string
+
 class Timer:
 
     def __init__(self, name: str):

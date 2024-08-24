@@ -3,7 +3,6 @@ import time
 import tkinter as tk
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
-import pandas as pd
 
 from librairies.data_classes import DataBus, TrainingStats, RadarState
 from librairies.tm_math_functions import delta_time_to_str, get_road_df
@@ -40,6 +39,13 @@ class Graphic:
 
         ## Config
         self.config = Config()
+        wait = True
+        while wait:
+            if self.databus_buffer.qsize() > 0:
+                databus: DataBus = self.databus_buffer.get()
+                self.config.spawn_config = databus.spawnConfig
+                print("Graphic process config received", flush=True)
+                wait = False
 
         self.iter = 0
         self.start_time = time.time()
@@ -70,19 +76,18 @@ class Graphic:
 
                 # ---- Update displays ----
                 # Map
-                if databus.radar_state is not None:
+                if databus.radar_state is not None and self.is_map_render.value:
                     self.plot_map.update_infos(databus.radar_state)
 
-                if databus.training_stats is not None and databus.distance_travelled != 0.0:
-                    # print("update curves", flush=True)
+                if databus.training_stats is not None and databus.distance_travelled != 0.0 and self.is_curves_render.value:
                     self.plot_curves.update_infos(databus.training_stats, databus.distance_travelled)
 
                 # Stats
                 if databus.training_stats is not None:
-                    self.update_training_stats(databus.training_stats)
+                    self.update_training_stats(databus.training_stats, databus.timeStats.train_time)
 
-                if databus.total_time is not None:
-                    self.update_total_time(databus.total_time)
+                if databus.timeStats is not None:
+                    self.update_total_time(databus.timeStats.global_time)
 
                 # FPS
                 self.update_fps(int(databus.fps_env), int(self.iter / (time.time() - self.start_time)))
@@ -135,7 +140,7 @@ class Graphic:
         self.button_speed = tk.Button(self.root, text="Set", command=self.change_game_speed, font=("Arial", 20))
         self.button_render_map = tk.Button(self.root, text="On", command=self.change_render_map, font=("Arial", 20))
         self.button_render_curves = tk.Button(self.root, text="On", command=self.change_render_curves, font=("Arial", 20))
-        self.button_random_spawn = tk.Button(self.root, text="On", command=self.change_random_spawn, font=("Arial", 20))
+        self.button_random_spawn = tk.Button(self.root, text="On" if self.is_random_spawn.value else "Off", command=self.change_random_spawn, font=("Arial", 20))
         self.button_exit = tk.Button(self.root, text="Exit", command=self.exit, font=("Arial", 20))
 
         ## Entry
@@ -216,8 +221,8 @@ class Graphic:
     def update_total_time(self, total_time: float):
         self.label_total_time.config(text=f"Total Time: {delta_time_to_str(total_time)}")
 
-    def update_training_stats(self, training_stats: TrainingStats):
-        # self.label_training_time.config(text=f"Training Time: {delta_time_to_str(training_stats.training_time)}")
+    def update_training_stats(self, training_stats: TrainingStats, training_time: float = 0.0):
+        self.label_training_time.config(text=f"Training Time: {delta_time_to_str(training_time)}")
         self.label_epoch.config(text=f"Epoch: {training_stats.epoch}")
         self.label_step.config(text=f"Step: {training_stats.step}")
         self.label_epsilon.config(text=f"Epsilon: {training_stats.epsilon:.3f}")

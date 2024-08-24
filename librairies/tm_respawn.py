@@ -12,6 +12,7 @@ class TMRandomRespawn:
         self.has_get_start_dist = False
         self.middle_points = middle_points
         self.spawn_config = spawn_config
+        self.start_dist_to_finish_line = 0
 
     def respawn(self, iface: TMInterface, _time: int):
         if self.has_respawned and _time > 100 and _time < 1000 :

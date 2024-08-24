@@ -6,17 +6,18 @@ from librairies.data_classes import TMSimulationResult, Point2D, Reward_limits
 from librairies.tm_math_functions import distance_to_finish_line, distance_point_to_line, angle_between_lines, get_closest_point, get_next_point, get_road_points
 from librairies.dictionaries import Rd
 
+
 class SimulationRewards:
 
-    def __init__(self, is_track_finished):
+    def __init__(self, track_name: str, is_track_finished):
 
-        self.middle_points = get_road_points(Rd.MIDDLE, True)
+        self.middle_points = get_road_points(track_name, Rd.MIDDLE, True)
         self.reward_limits = Reward_limits(-1, 1)
         self.inactivity = 0
         self.is_track_finished = is_track_finished
 
 # get reward, done, score        
-    def get_TM_simulation_result(self, iface_state: TMInterface, car_pos: Point2D, car_ahead: Point2D, start_simulation_time: float) -> TMSimulationResult:
+    def get_TM_simulation_result(self, iface_state: TMInterface, car_pos: Point2D, car_ahead: Point2D, simulation_time: float) -> TMSimulationResult:
         
         reward = 0
         game_over = False
@@ -81,7 +82,7 @@ class SimulationRewards:
         # --- get DONE ---
 
         # Restart if too long
-        if time.time() - start_simulation_time > 40:
+        if simulation_time > 40:
             # print(time.time() - self.start_simulation_time)
             print("Step restarted : Car is too slow", flush=True)
             game_over = True

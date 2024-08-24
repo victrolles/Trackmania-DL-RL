@@ -1,7 +1,6 @@
 from dataclasses import dataclass
 import numpy as np
-from rl_algorithms.dqn.dqn_model import DQNModel
-import torch.optim as optim
+from librairies.scores import Scores
 
 @dataclass
 class Point3D:
@@ -41,8 +40,13 @@ class Point2D:
                 norm /= max_dist
             
         return norm
+    
+@dataclass
+class DetectedPoint:
+    pos: Point2D
+    dist: float
 
-# Configuration class
+# ============== Configuration class ==============
 
 @dataclass
 class EnvironmentConfig:
@@ -58,6 +62,10 @@ class EpsilonConfig:
 
 @dataclass
 class RLConfig:
+    rl_algo: str
+    traininig: bool
+    load_checkpoint: bool
+    load_checkpoint_path: str
     lr: float
     gamma: float
     hidden_layer_size: int
@@ -80,18 +88,14 @@ class SpawnConfig:
 
 @dataclass
 class AgentConfig:
+    name: str
     max_dist_radar: float
 
 @dataclass
 class ExpBufferConfig:
     buffer_size: int
 
-# -----------------------------------------   
-
-@dataclass
-class DetectedPoint:
-    pos: Point2D
-    dist: float
+# =================================================
 
 @dataclass
 class RadarState:
@@ -107,14 +111,6 @@ class TMSimulationResult:
     dist_to_finish_line: float
 
 @dataclass
-class TrainingCheckpoint:
-    model_network: DQNModel
-    model_target_network: DQNModel
-    optimizer: optim.Adam
-    current_epsilon: float
-    epoch: int
-
-@dataclass
 class TrainingStats:
     epoch: int
     step: int
@@ -122,21 +118,18 @@ class TrainingStats:
     epsilon: float
 
 @dataclass
-class Exp:
-    state: RadarState
-    action: int
-    reward: float
-    done: bool
-    next_state: RadarState
-
-    def set_none():
-        return Exp(None, None, None, None, None)
+class TimeStats:
+    global_time: float
+    train_time: float
+    sim_time: float
 
 @dataclass
 class DataBus:
+    spawnConfig: SpawnConfig
+    scores: Scores
     radar_state: RadarState
     training_stats: TrainingStats
-    total_time: float
+    timeStats: TimeStats
     distance_travelled: float
     fps_env: float
     exp_buffer_size: int
