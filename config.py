@@ -7,7 +7,7 @@ class Config:
         rl_algo='DQN',
         traininig=True,
         load_checkpoint=True,
-        load_checkpoint_path='extras/maps/snake_map_training/saves/24-08-24-09-52_DQN_RadarAgent/model_3200.pth',
+        load_checkpoint_path='extras/maps/snake_map_training/saves/24-08-24-12-47_DQN_RadarAgent/model_8460.pth',
         lr=1e-3, #1e-4
         gamma=0.995,
         hidden_layer_size=128,

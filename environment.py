@@ -241,8 +241,14 @@ class Environment(Client):
                         
 
     def stop_env_process(self, iface: TMInterface) -> None:
+        # Stop timers
+        self.timers.stop("Global")
+        self.timers.stop("Training")
+        self.timers.stop("Simulation")
+
         # Close the connection to Trackmania
         iface.close()
+        
         # Save the model
         self.make_checkpoint()
         print("Environment process correctly stopped", flush=True)
