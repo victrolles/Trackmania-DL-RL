@@ -18,7 +18,46 @@ More informations are available on his repo : https://github.com/donadigo/TMInte
 
 ### Clone the repo
 
-###
+First clone the repo using the command below :
+```bash
+git clone https://github.com/victrolles/Trackmania-DL-RL.git
+```
+
+To run the code, you need **python 3.12.** environment. Download it on your own. \
+To make clean project, we will use a virtual environment.
+
+If you want to use **GPUs**, you first need to follow theses steps :
+- Install the **CUDA Toolkit** with this link :https://developer.nvidia.com/cuda-toolkit
+- Install the **cuDNN** with this link : https://developer.nvidia.com/cudnn
+- Start your env and then download pytorch using this command : 
+    ```bash
+    pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu124
+    ```
+
+In **another** terminal, use the following commands to start the backend :
+- Go to the project folder
+- Create a virtual environment
+    ```bash
+    python -m venv .venv
+    ```
+- Activate the virtual environment
+    ```bash
+    .venv\Scripts\activate
+    ```
+- Install the dependencies
+    ```bash
+    pip install -r requirements.txt
+    ```
+
+### Load track on Trackmania
+
+You need to load a track on Trackmania before running the code. You can use the track "snake_map_training" available in the repo.
+
+Copy the file "snake_map_training.Challenge.Gbx" in the folder "C:\Users\%USERNAME%\Documents\TrackMania\Tracks\Challenges\Downloaded". In the repo, the file is located in the address : "extras\maps\snake_map_training\snake_map_training.Challenge.Gbx".
+
+### Load checkpoints on TMInterface
+
+To enable training with random spawn points, you need to load checkpoints on TMInterface. You need to drag and drop all the checkpoint_X.bin files in the folder "C:\Users\%USERNAME%\Documents\TMInterface\States". In the repo, the files are located in the address : "extras\maps\snake_map_training\States".
 
 ## Trainer
 
