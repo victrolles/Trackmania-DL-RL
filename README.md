@@ -1,4 +1,24 @@
-# Trackmania-DL-RL
+# TrackmaniaAI - Deep Reinforcement Learning
+
+## Setup the environment
+
+### Download TrackMania Nations Forever
+
+You need to get a steam account to download steam app.
+
+Then, you can download Trackmania Nations Forever using the link below :
+https://store.steampowered.com/app/11020/TrackMania_Nations_Forever/
+
+### Download Trackmania API
+
+Thanks to Donadigo, a Trackmania API named "TMInterface" is available to connect Trackmania game and python code. You can find the link below :
+https://donadigo.com/files/TMInterface/TMInterface_1.4.3_Setup.exe
+
+More informations are available on his repo : https://github.com/donadigo/TMInterfaceClientPython
+
+### Clone the repo
+
+###
 
 ## Trainer
 
