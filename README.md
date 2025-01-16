@@ -59,6 +59,15 @@ Copy the file "snake_map_training.Challenge.Gbx" in the folder "C:\Users\%USERNA
 
 To enable training with random spawn points, you need to load checkpoints on TMInterface. You need to drag and drop all the checkpoint_X.bin files in the folder "C:\Users\%USERNAME%\Documents\TMInterface\States". In the repo, the files are located in the address : "extras\maps\snake_map_training\States".
 
+### Launch the track on Trackmania
+
+When the map is added to Trackmania, go to "Play Solo" -> Browse" -> "Challenges" -> "My Challenges" -> "snake_map". \
+Press "Play"
+
+### Run python code
+
+With the virtual environment, run the file "main.py" and it's done
+
 ## Trainer
 
 ### TM Inputs
