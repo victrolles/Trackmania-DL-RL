@@ -67,6 +67,9 @@ Press "Play"
 ### Run python code
 
 With the virtual environment, run the file "main.py" and it's done
+```bash
+python main.py
+```
 
 ## Trainer
 
