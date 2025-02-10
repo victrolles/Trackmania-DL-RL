@@ -1,30 +1,23 @@
-import numpy as np
-import torch
-from collections import namedtuple
-from torch.nn.functional import softmax, one_hot, log_softmax
-from torch import argmax
+from ultralytics import YOLO
+import cv2
+import matplotlib.pyplot as plt
 
+# Charger le modèle YOLOv8 pré-entraîné (segmentation)
+model = YOLO('yolo11n-seg.pt')  # Utiliser la version nano pour la rapidité
 
-# value = torch.tensor([[-0.0770,  0.0902,  0.0253,  0.0755,  0.0763]])
-# print(value)
-# probabilities = softmax(value, dim=-1)
-# print(probabilities)
-# log_probabilities = log_softmax(probabilities, dim=-1)
-# print(log_probabilities)
-# best = argmax(probabilities, dim=1)
-# print(best)
-# random_dist = torch.distributions.Categorical(probabilities)
-# print(random_dist)
-# action = random_dist.sample()
-# print(action)
-# log_probabilities = random_dist.log_prob(action)
-# print(log_probabilities)
+# Charger l'image
+image_path = 'extras/tests/image.png'  # Chemin vers l'image d'entrée
+image = cv2.imread(image_path)
+image_rgb = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
 
-n_step_rewards = []
-rewards = [1, 9, 2, 8, 3, 7, 4, 6, 5]
-# for i in range(len(rewards)):
-#     n_step_reward = sum([1 ** j * rewards[i + j] for j in range(min(3, len(rewards) - i))])
-#     n_step_rewards.append(n_step_reward)
+# Effectuer la segmentation
+results = model(image_rgb)
 
-# print(n_step_rewards)
-print(rewards[-3:])
+# Récupérer l'image segmentée
+segmented_image = results[0].plot()  # Génère une image avec les masques segmentés
+
+# Afficher le résultat
+plt.imshow(cv2.cvtColor(segmented_image, cv2.COLOR_BGR2RGB))
+plt.axis('off')
+plt.title('Image segmentée avec YOLOv8')
+plt.show()
