@@ -11,6 +11,8 @@ def load_flo(filename):
 
         width = np.fromfile(f, np.int32, count=1)[0]
         height = np.fromfile(f, np.int32, count=1)[0]
+
+        # Lire les données du flux optique (2 canaux : u et v)
         data = np.fromfile(f, np.float32, count=2 * width * height)
         flow = np.resize(data, (height, width, 2))
 
@@ -39,6 +41,7 @@ for flow in all_flo:
 
 # Charger un fichier .flo
 flow = load_flo(f"./output_flows/out_{i}.flo")
+print(f"Chargement de l'image {i}")
 
 print("Taille de l'image :", flow.shape)  # (hauteur, largeur, 2)
 print("Exemple de vecteur de mouvement :", flow[0, 0])  # Vecteur de mouvement à la position (0, 0)

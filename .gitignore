@@ -3,4 +3,6 @@ __pycache__/
 .vscode/
 .venv/
 
-pytorch-pwc-sniklaus/all_frames/
+pytorch-pwc-sniklaus/images*
+pytorch-pwc-sniklaus/output*
+pytorch-pwc-sniklaus/*.zip

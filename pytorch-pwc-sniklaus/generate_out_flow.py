@@ -24,8 +24,8 @@ torch.backends.cudnn.enabled = True # make sure to use cudnn for computational p
 ##########################################################
 
 args_strModel = 'default' # 'default', or 'chairs-things'
-args_strOne = './images/one__t.png'
-args_strTwo = './images/two__t.png'
+args_strOne = './images/frame_00077.png'
+args_strTwo = './images/frame_00078.png'
 
 if not os.path.exists("output_flows"):
     os.makedirs("output_flows")
