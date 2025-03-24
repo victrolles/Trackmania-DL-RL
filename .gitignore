@@ -2,7 +2,10 @@ __pycache__/
 .idea/
 .vscode/
 .venv/
+.venv38/
 
 pytorch-pwc-sniklaus/images*
 pytorch-pwc-sniklaus/output*
 pytorch-pwc-sniklaus/*.zip
+
+*.png
